@@ -1,0 +1,10 @@
+setup.py
+dataframe_short/__init__.py
+dataframe_short/dataframe_test.py
+dataframe_short/func_24_Feb.py
+dataframe_short/lib02_dataframe.py
+dataframe_short.egg-info/PKG-INFO
+dataframe_short.egg-info/SOURCES.txt
+dataframe_short.egg-info/dependency_links.txt
+dataframe_short.egg-info/requires.txt
+dataframe_short.egg-info/top_level.txt
