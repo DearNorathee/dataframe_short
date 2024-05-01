@@ -1180,6 +1180,7 @@ def pd_is_same(df1,df2):
 def pd_read_excel(filepath, sheet_name=0, header_row=1, start_row=None, end_row=None):
     import pandas as pd
     import xlwings as xw
+    import numpy as np
     # Hard for both Cluade3 & GPT4
     # medium tested
     # took about 1.5 hr(include testing)
@@ -1284,37 +1285,59 @@ def pd_regex_index(df,regex, column):
     
     return ans_index
 
-def pd_split_into_dict_df(df,regex = None, regex_column = None, index_list = None):
+def pd_split_into_dict_df(df,regex = None, regex_column = None, index_list = None,add_prefix_index = False):
     # from C:/Users/Heng2020/OneDrive/Python NLP/NLP 07_Sentence Alignment
     # middle tested by read_movie_script
     # if index_list is supplied then ignore regex, regex_column
     
     # dependency: pd_split_into_dict_df, pd_regex_index
+    from collections import OrderedDict
+    df_dict = OrderedDict()
 
+    # split using header
+    if (regex is None) and (regex_column is None) and (index_list = None):
+        # imported from C:/Users/Heng2020/OneDrive/D_Code/Python/Python NLP/NLP 02/NLP_2024/NLP 11_Local_TTS
+        index_list_used = df.index[df.iloc[:, 1:].isnull().all(axis=1) & df.iloc[:, 0].notnull()].tolist()
 
-    if index_list is None:
-        index_list_used = pd_regex_index(df,regex,regex_column)
+        # Use the values of the first column as keys and the slices between the found indices as dictionary values
+        n_dict = len(index_list_used)
+        i = 1
+        for start, end in zip(index_list_used, index_list_used[1:] + [None]):  # Adding None to handle till the end of the DataFrame
+            format_num = format_index_num(i, n_dict)
+            if add_prefix_index:
+                key = format_num + "_" + df.iloc[start, 0]  # The key is the value in the first column
+            else:
+                key = df.iloc[start, 0]
+            # Slice the DataFrame from the current index to the next one in the list
+            each_df = df.iloc[start+1:end].reset_index(drop=True)
+            each_df = each_df.dropna(how='all')
+            
+            df_dict[key] = each_df
+            i += 1
     else:
-        index_list_used = [x for x in index_list]
-    
-    df_dict = {}
-    start_index = 0
-    
-    temp_df : pd.DataFrame
-    
-    for end_index in index_list_used:
-        # Slice the dataframe for each episode
-        temp_df = df.iloc[start_index:end_index, :]
+        if index_list is None:
+            index_list_used = pd_regex_index(df,regex,regex_column)
+        else:
+            index_list_used = [x for x in index_list]
+        
+        
+        start_index = 0
+        
+        temp_df : pd.DataFrame
+        
+        for end_index in index_list_used:
+            # Slice the dataframe for each episode
+            temp_df = df.iloc[start_index:end_index, :]
 
-        if not temp_df.empty:
-            # Get the episode identifier from the first row
-            episode_identifier = temp_df.iloc[0, 0]
-            temp_df = temp_df.reset_index(drop=True)
-            temp_df = temp_df.drop(0)
-            # Store the dataframe in the dictionary
-            df_dict[episode_identifier] = temp_df
+            if not temp_df.empty:
+                # Get the episode identifier from the first row
+                episode_identifier = temp_df.iloc[0, 0]
+                temp_df = temp_df.reset_index(drop=True)
+                temp_df = temp_df.drop(0)
+                # Store the dataframe in the dictionary
+                df_dict[episode_identifier] = temp_df
 
-        start_index = end_index
+            start_index = end_index
         
     return df_dict
 
