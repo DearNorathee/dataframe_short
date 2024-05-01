@@ -1295,7 +1295,7 @@ def pd_split_into_dict_df(df,regex = None, regex_column = None, index_list = Non
     df_dict = OrderedDict()
 
     # split using header
-    if (regex is None) and (regex_column is None) and (index_list = None):
+    if (regex is None) and (regex_column is None) and (index_list is None):
         # imported from C:/Users/Heng2020/OneDrive/D_Code/Python/Python NLP/NLP 02/NLP_2024/NLP 11_Local_TTS
         index_list_used = df.index[df.iloc[:, 1:].isnull().all(axis=1) & df.iloc[:, 0].notnull()].tolist()
 
@@ -1303,7 +1303,7 @@ def pd_split_into_dict_df(df,regex = None, regex_column = None, index_list = Non
         n_dict = len(index_list_used)
         i = 1
         for start, end in zip(index_list_used, index_list_used[1:] + [None]):  # Adding None to handle till the end of the DataFrame
-            format_num = format_index_num(i, n_dict)
+            format_num = pst.format_index_num(i, n_dict)
             if add_prefix_index:
                 key = format_num + "_" + df.iloc[start, 0]  # The key is the value in the first column
             else:
