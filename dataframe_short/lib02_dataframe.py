@@ -14,6 +14,35 @@ import sys
 # import string_01 as pst
 import py_string_tool as pst
 
+
+def rename_col_by_index(df, index, new_name, inplace=True):
+    """
+    medium tested
+    Rename a column in a DataFrame based on its index (this can handle repeated name)
+
+    Parameters:
+    df (pd.DataFrame): The DataFrame whose column you want to rename.
+    index (int): The index of the column to rename.
+    new_name (str): The new name for the column.
+    inplace (bool): If True, modifies the DataFrame in place (default is True).
+
+    Returns:
+    pd.DataFrame or None: The DataFrame with the renamed column if inplace is False, otherwise None.
+    """
+    # Ensure the index is within the valid range
+    if not 0 <= index < len(df.columns):
+        raise IndexError("Column index out of range.")
+    
+    # Copy df if not inplace
+    if not inplace:
+        df = df.copy()
+    
+    # Set new column name
+    df.columns = df.columns[:index].tolist() + [new_name] + df.columns[index+1:].tolist()
+    
+    if not inplace:
+        return df
+
 def to_list(df_sr_list):
     import pandas as pd
     # can only be used in this code bc it select 1st column(not all column)

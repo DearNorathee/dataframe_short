@@ -1,8 +1,8 @@
 # History
 
-## 0.1.1
+## 0.1.6
 ### Immigrated
-- `regression.multiple_regression` module.
+- `rename_col_by_index`,`to_list`
 
 
 <!-- example -->
