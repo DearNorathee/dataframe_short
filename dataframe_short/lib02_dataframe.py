@@ -14,6 +14,30 @@ import sys
 # import string_01 as pst
 import py_string_tool as pst
 
+def to_list(df_sr_list):
+    import pandas as pd
+    # can only be used in this code bc it select 1st column(not all column)
+    # convert pd.Dataframe, series, list, or 1string to list
+    out_list = []
+    # select only 1st column
+    if isinstance(df_sr_list, list):
+        out_list = df_sr_list
+        
+    elif isinstance(df_sr_list, pd.DataFrame):
+        out_list = df_sr_list.iloc[:, 0].values.tolist()
+        
+    elif isinstance(df_sr_list, pd.Series):
+        out_list = df_sr_list.tolist()
+        
+    elif isinstance(df_sr_list, (int,float,complex,str)):
+        out_list = [df_sr_list]
+    
+    else:
+        print("This datatype is not suppored by this function")
+        return False
+    
+    return out_list
+
 def indexAlignedAppend(df1, df2, col_name):
     # it works: medium tested
     import pandas as pd
@@ -1479,13 +1503,13 @@ def _merge_df(df1, df2):
     result = pd.merge(df1.assign(key=1), df2.assign(key=1), on='key').drop('key', axis=1)
     return result
 
-def model_values(xgb_pipeline,X,y_name=""):
-    # In case y_name="" means that X doesn't have the y values already
+# def model_values(xgb_pipeline,X,y_name=""):
+#     # In case y_name="" means that X doesn't have the y values already
     
-    if y_name != "":
-        X_NO_y = X.drop(y_name,axis=1)
-    else:
-        X_NO_y = X
-    test_val = make_testing_val(X_NO_y)
-    model_val = xgb_predict_append(xgb_pipeline, test_val)
-    return model_val
+#     if y_name != "":
+#         X_NO_y = X.drop(y_name,axis=1)
+#     else:
+#         X_NO_y = X
+#     test_val = make_testing_val(X_NO_y)
+#     model_val = xgb_predict_append(xgb_pipeline, test_val)
+#     return model_val
