@@ -7,7 +7,7 @@ setup(
     version="0.1.5",
     packages=find_packages(),
     license="MIT",
-    install_requires=["pandas","os_toolkit","py_string_tool","datatable","polars","python_wizard"],
+    install_requires=["pandas","os_toolkit","py_string_tool","datatable","polars","python_wizard","pyxlsb"],
     
  
 )
