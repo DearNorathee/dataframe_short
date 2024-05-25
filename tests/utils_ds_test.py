@@ -58,13 +58,6 @@ def test_custom_sort():
     print()
     
 
-def test_St_GetNum():
-    ex01 = "1st Year Renewal"
-    ex02 = "-6 Year"
-    ex03 = "25+"
-    print(St_GetNum(ex01))
-    print(St_GetNum(ex02))
-    print(St_GetNum(ex03))
 
 
 
@@ -89,24 +82,17 @@ def test_custom_sort():
         # for debugging
         if variable_name[i] in ["fClm_Prior2YrODClaimCount"]:
             print()
-        ans = custom_sort(lst, begin_with, end_with)
+        ans = ds.custom_sort(lst, begin_with, end_with)
         print(variable_name[i])
         print(ans)
         print()
         
-    ans02 = custom_sort(list02, begin_with, end_with)
-    ans03 = custom_sort(list03, begin_with, end_with)
-    ans04 = custom_sort(list04, begin_with, end_with)
+    ans02 = ds.custom_sort(list02, begin_with, end_with)
+    ans03 = ds.custom_sort(list03, begin_with, end_with)
+    ans04 = ds.custom_sort(list04, begin_with, end_with)
     print()
     
 
-def test_St_GetNum():
-    ex01 = "1st Year Renewal"
-    ex02 = "-6 Year"
-    ex03 = "25+"
-    print(St_GetNum(ex01))
-    print(St_GetNum(ex02))
-    print(St_GetNum(ex03))
 
 def test_pd_get_col():
     path01 = r"C:\Users\n1603499\OneDrive - Liberty Mutual\Documents\15.02 ARM DS\2023\Project05_VN_MechanicalRefresh\Current Working Files\df_only_in_claim.csv"
