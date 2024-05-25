@@ -9,7 +9,7 @@ import numpy as np
 from itertools import product
 from collections import defaultdict
 import sys
-
+from typing import List, Tuple, Literal, Union
 import py_string_tool as pst
 
 
@@ -1010,7 +1010,7 @@ def swap_col(df, col1, col2):
     return df[column_list]
 
 
-def df_value_index(df, value):
+def value_index(df, value):
     """
     Searches for a specific value in the DataFrame using a vectorized approach
     and returns a new DataFrame with the row and column indices where the value
@@ -1275,7 +1275,7 @@ def split_into_dict_df(df,regex = None, regex_column = None, index_list = None,a
         
     return df_dict
 
-def by_column(df, columns):
+def by_col(df, columns):
     # from C:/Users/Heng2020/OneDrive/Python NLP/NLP 07_Sentence Alignment
     # middle tested by read_movie_script
     # slice the dataFrame refer to by str or int
@@ -1319,6 +1319,9 @@ def num_to_cat02(data,num_to_cat_col):
     return data
 
 def drop_column(data, drop_col):
+    """
+    it will not throw an error when there's no column in data.columns
+    """
     for col in drop_col:
         if col in data.columns:
             data.drop(col, axis=1, inplace=True)
@@ -1328,15 +1331,15 @@ def drop_column(data, drop_col):
     return data
 
 
-def cat_column(data):
+def cat_col(data):
     cat_cols = data.select_dtypes(include=['object','category']).columns.tolist()
     return cat_cols
 
-def num_column(data):
+def num_col(data):
     num_cols = data.select_dtypes(include=np.number).columns.tolist()
     return num_cols
 
-def select_column(data,used_col,drop_col):
+def select_col(data,used_col,drop_col):
     pass
     
 def to_category(data):
