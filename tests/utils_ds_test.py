@@ -1,6 +1,7 @@
 import unittest
 # import lib02_dataframe as ds
 import pandas as pd
+import dataframe_short.utils_ds as ds 
 
 class Test_df_value_index(unittest.TestCase):
     @classmethod
