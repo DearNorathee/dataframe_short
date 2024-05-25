@@ -65,7 +65,7 @@ def to_list(df_sr_list):
     
     return out_list
 
-def indexAlignedAppend(df1, df2, col_name):
+def index_aligned_append(df1, df2, col_name):
     # it works: medium tested
     import pandas as pd
     """
@@ -155,14 +155,14 @@ def combine_files_to_df(
             name_filter = re.search(extract_pattern, filename).group()
         # curr_df.columns.values[0] = 'NoSentence'
         curr_df[filename_col_name] = name_filter
-        pd_move_col_front(curr_df, filename_col_name)
+        move_col_front(curr_df, filename_col_name)
         out_df = pd.concat([out_df,curr_df])
 
     return out_df
 
 
 # ########################################## imported from work Mar 17, 2024 #######################################################################
-def df_to_str_decimal(df,cols,decimal_place = 1, inplace = True, except_level = []):
+def to_str_decimal(df,cols,decimal_place = 1, inplace = True, except_level = []):
     # based on pd = 2.1.0
     # Next: add except_level
     from pandas.api.types import is_numeric_dtype
@@ -182,53 +182,7 @@ def df_to_str_decimal(df,cols,decimal_place = 1, inplace = True, except_level = 
             df[col] = df[col].apply(lambda row: f"{row:.{decimal_place}f}")
         # df[col] = df[col].apply(lambda row: f"{row:.{decimal_place}f}" if row not in except_level, axis = 1)
 
-
-def df_XLookup(df_main, df_lookup, lookup_col, key_col, return_col, inplace=True):
-    """
-    Perform an XLOOKUP-like operation on DataFrames.
-
-    Parameters:
-        df_main (pd.DataFrame): Main DataFrame.
-        df_lookup (pd.DataFrame): Lookup DataFrame.
-        lookup_col (str or list[str]): Column(s) in df_main to use for lookup.
-        key_col (str): Column in df_lookup to match with lookup_col.
-        return_col (str or list[str]): Column(s) in df_lookup to return.
-        inplace (bool, optional): If True, modifies df_main in-place. Otherwise, returns a new DataFrame. Default is True.
-
-    Returns:
-        pd.DataFrame: Modified df_main if inplace=True, otherwise a new DataFrame.
-    """
-    # Ensure lookup_col is a list
-    if not isinstance(lookup_col, list):
-        lookup_col = [lookup_col]
-
-    # Merge DataFrames
-    merged_df = pd.merge(df_main, df_lookup, left_on=lookup_col, right_on=key_col, how='left')
-
-    # Keep only the specified return columns
-    if isinstance(return_col, str):
-        return_col = [return_col]  # Convert single column name to list
-
-    if inplace:
-        for col in return_col:
-            df_main[col] = merged_df[col]
-        return df_main
-    else:
-        return merged_df[return_col]
-
-def pd_shape(df):
-    # originally from lib01
-    # but upgraded
-    # medium tested
-    import pandas as pd
-    if isinstance(df, pd.DataFrame):
-        print("The shape ({:,} * {:,})".format(*df.shape))
-    # to support when df.shape is an input
-    elif isinstance(df, tuple):
-        print("The shape ({:,} * {:,})".format(*df))
-
-
-def pd_to_datetime(df,cols = None,inplace=True, print_col = True):
+def to_datetime(df,cols = None,inplace=True, print_col = True):
     # little tested
     # required: pd_get_col
     """
@@ -283,7 +237,7 @@ def pd_to_datetime(df,cols = None,inplace=True, print_col = True):
     import pandas as pd
 
     if cols is None:
-        cols = pd_get_col(df,contain='date',print_col=print_col)
+        cols = get_col(df,contain='date',print_col=print_col)
 
     
     out_df = pd.DataFrame()
@@ -300,7 +254,100 @@ def pd_to_datetime(df,cols = None,inplace=True, print_col = True):
     if not inplace:
         return out_df
 
-def df_sum_all(df,value_col,exclude = None, inplace = False, dropna = False):
+def to_num(df,cols,num_type = "int64",inplace = True,fill_na = 0):
+    # fill_na has to be 0 for it to work properly ----> need more investigation
+    
+    # it seems to work even when it's already number
+    # must import
+    from pandas.api.types import is_object_dtype
+    if isinstance(cols, str):
+        # convert to list
+        cols_ = [cols]
+    else:
+        cols_ = [x for x in cols]
+        
+    if isinstance(cols_, list):
+        for col in cols_:
+            if is_object_dtype(df[col]):
+                try:
+                    df[col] = df[col].str.replace("," ,  "")
+                    if fill_na is not False: 
+                        df[col] = df[col].fillna(fill_na)
+                    # df[col] = df[col].astype(num_type)
+                    df[col] = pd.to_numeric(df[col],errors='coerce')
+                except Exception as e:
+                    e_str = str(e)
+                    print(e_str)
+                    print(f"'{col}' has an error")
+
+    else:
+        pass
+
+def to_str(df,cols = None,inplace = True,fill_na = False):
+    # if cols is None convert all columns to string
+    if cols is None:
+        cols_ = list(df.columns)
+    elif isinstance(cols, str):
+        # convert to list
+        cols_ = [cols]
+    else:
+        cols_ = [x for x in cols]
+        
+    if isinstance(cols_, list):
+        for col in cols_:
+            df[col] = df[col].astype(str)
+    else:
+        pass
+
+
+def x_lookup(df_main, df_lookup, lookup_col, key_col, return_col, inplace=True):
+    """
+    Perform an XLOOKUP-like operation on DataFrames.
+
+    Parameters:
+        df_main (pd.DataFrame): Main DataFrame.
+        df_lookup (pd.DataFrame): Lookup DataFrame.
+        lookup_col (str or list[str]): Column(s) in df_main to use for lookup.
+        key_col (str): Column in df_lookup to match with lookup_col.
+        return_col (str or list[str]): Column(s) in df_lookup to return.
+        inplace (bool, optional): If True, modifies df_main in-place. Otherwise, returns a new DataFrame. Default is True.
+
+    Returns:
+        pd.DataFrame: Modified df_main if inplace=True, otherwise a new DataFrame.
+    """
+    # Ensure lookup_col is a list
+    if not isinstance(lookup_col, list):
+        lookup_col = [lookup_col]
+
+    # Merge DataFrames
+    merged_df = pd.merge(df_main, df_lookup, left_on=lookup_col, right_on=key_col, how='left')
+
+    # Keep only the specified return columns
+    if isinstance(return_col, str):
+        return_col = [return_col]  # Convert single column name to list
+
+    if inplace:
+        for col in return_col:
+            df_main[col] = merged_df[col]
+        return df_main
+    else:
+        return merged_df[return_col]
+
+def shape(df):
+    # originally from lib01
+    # but upgraded
+    # medium tested
+    import pandas as pd
+    if isinstance(df, pd.DataFrame):
+        print("The shape ({:,} * {:,})".format(*df.shape))
+    # to support when df.shape is an input
+    elif isinstance(df, tuple):
+        print("The shape ({:,} * {:,})".format(*df))
+
+
+
+
+def sum_all(df,value_col,exclude = None, inplace = False, dropna = False):
     """ This will sum the value_col grouped by other_column """
 
     test01 = df.groupby(['aPol_CalYear'])[['exposure','claim_count','total_paid']].sum()
@@ -320,7 +367,7 @@ def df_sum_all(df,value_col,exclude = None, inplace = False, dropna = False):
     else:
         return df_agg
 
-def pd_count_freq(df, groupby_col, value_col):
+def count_freq(df, groupby_col, value_col):
     """
     Count the frequency of values in a column and return a dataframe.
 
@@ -391,11 +438,11 @@ def write_excel(list_dfs, excel_name, sheet_name = None):
             df.to_excel(writer,'sheet%s' % n)
     writer.save()
 
-def pd_common_col(df1,df2):
+def common_col(df1,df2):
     common_col = [x for x in list(df1.columns) if x in list(df2.columns) ]
     return common_col
 
-def pd_get_col(df,start_with = "",end_with ="", contain = "", case_sensitive=False, print_col=True):
+def get_col(df,start_with = "",end_with ="", contain = "", case_sensitive=False, print_col=True):
 
 # this is from print_col 
 # !!! TODO start_with, end_with, contain is list
@@ -431,7 +478,7 @@ def pd_get_col(df,start_with = "",end_with ="", contain = "", case_sensitive=Fal
     return cols
 
 
-def pd_merge2(left, 
+def merge2(left, 
              right, 
              how='inner', 
              on=None, 
@@ -472,9 +519,9 @@ def pd_merge2(left,
     # elif keep == "right":
     #     df_merged = pd.merge(left,right,how,on,left_on,right_on,suffixes=('_remove', ''))
     
-    x_col = pd_get_col(df_merged,end_with = "_x",print_col=False)
+    x_col = get_col(df_merged,end_with = "_x",print_col=False)
     
-    xy_col = list(zip(pd_get_col(df_merged,end_with = "_x",print_col=False),pd_get_col(df_merged,end_with = "_y",print_col=False) ))
+    xy_col = list(zip(get_col(df_merged,end_with = "_x",print_col=False),get_col(df_merged,end_with = "_y",print_col=False) ))
 
     for x_col, y_col in xy_col:
         col_name = x_col.split("_")[0]
@@ -492,7 +539,7 @@ def pd_merge2(left,
     return df_merged
 
 
-def pd_merge(left, 
+def merge(left, 
              right, 
              how='inner', 
              on=None, 
@@ -521,12 +568,12 @@ def pd_merge(left,
     # elif keep == "right":
     #     df_merged = pd.merge(left,right,how,on,left_on,right_on,suffixes=('_remove', ''))
     
-    x_col_list = pd_get_col(df_merged,end_with = "_x",print_col=False)
-    y_col_list = pd_get_col(df_merged,end_with = "_y",print_col=False)
+    x_col_list = get_col(df_merged,end_with = "_x",print_col=False)
+    y_col_list = get_col(df_merged,end_with = "_y",print_col=False)
     
     xy_col_list = x_col_list + y_col_list
     
-    xy_col = list(zip(pd_get_col(df_merged,end_with = "_x",print_col=False),pd_get_col(df_merged,end_with = "_y",print_col=False) ))
+    xy_col = list(zip(get_col(df_merged,end_with = "_x",print_col=False),get_col(df_merged,end_with = "_y",print_col=False) ))
 
     for x_col, y_col in xy_col:
         col_name = x_col.split("_x")[0]
@@ -566,36 +613,8 @@ def pd_merge(left,
     return df_merged
 
 
-def pd_to_num(df,cols,num_type = "int64",inplace = True,fill_na = 0):
-    # fill_na has to be 0 for it to work properly ----> need more investigation
-    
-    # it seems to work even when it's already number
-    # must import
-    from pandas.api.types import is_object_dtype
-    if isinstance(cols, str):
-        # convert to list
-        cols_ = [cols]
-    else:
-        cols_ = [x for x in cols]
-        
-    if isinstance(cols_, list):
-        for col in cols_:
-            if is_object_dtype(df[col]):
-                try:
-                    df[col] = df[col].str.replace("," ,  "")
-                    if fill_na is not False: 
-                        df[col] = df[col].fillna(fill_na)
-                    # df[col] = df[col].astype(num_type)
-                    df[col] = pd.to_numeric(df[col],errors='coerce')
-                except Exception as e:
-                    e_str = str(e)
-                    print(e_str)
-                    print(f"'{col}' has an error")
 
-    else:
-        pass
-
-def pd_move_col_front(df, cols, inplace=True):
+def move_col_front(df, cols, inplace=True):
     """
     old code
     # based on pd version == 2.1.3
@@ -656,7 +675,7 @@ def pd_move_col_front(df, cols, inplace=True):
     else:
         return df_new
 
-# def pd_move_col_front(df, cols, inplace=True):
+# def move_col_front(df, cols, inplace=True):
 #     """
 #     from Claude 3(solo)
 #     # based on pd version == 2.1.3
@@ -726,7 +745,7 @@ def pd_move_col_front(df, cols, inplace=True):
 
 
 
-def pd_check_col(df, columns):
+def check_col(df, columns):
     # Create an empty list to store the tuples
     result = []
     
@@ -743,75 +762,6 @@ def pd_check_col(df, columns):
     # Return the result list
     return result
 
-def custom_sort(lst, begin_with, end_with,ascending=True, string_last = True):
-    import re
-    # medium tested
-    
-    # what if there's no begin_with or end_with?
-
-    # cover when begin_with is string
-    # cover when end_with is string
-    
-    sort_by = []
-    
-    have_begin = []
-    have_end = []
-    
-    large_num = 2*len(lst)
-    count = 0
-    # ['m.>30', 'b.-30to-20', 'a.<-30', 'l.21to30', 'd.-14to-10', 'j.11to15', 'i.6to10', 'h.1to5', 'e.-9to-5', 'f.-4to-1', 'c.-19to-15', 'g.0', 'k.16to20']
-    # check only first element
-    if isinstance(lst[0], str):
-        match = re.search(r'[a-zA-Z]\.', lst[0])
-    else:
-        # If it's a number 
-        match = False
-    
-    if match:
-        sorted_list = sorted(lst,reverse=not ascending)
-        return sorted_list
-    for val in lst:
-        try:
-            num = float(val)
-            sort_by.append(num)
-        except ValueError:
-            num_02 = val.split(" ")[0]
-            num_03 = pst.St_GetNum(num_02)
-            
-            # string case
-            if val in begin_with:
-                order_index = -large_num + begin_with.index(val)
-                sort_by.append(order_index)
-                
-            elif val in end_with:
-                order_index = large_num + begin_with.index(val)
-                sort_by.append(order_index)
-                
-            else:
-                if num_03 is False:
-                    
-                    # if val not in either begin_with nor end_with
-                    if string_last:
-                        # put string at the end
-                        order_index = large_num + count
-                        count += 1
-                    else:
-                        # put string at the beginning
-                        order_index = -large_num + count
-                        count += 1
-                    sort_by.append(order_index)
-                else:
-                    sort_by.append(num_03)
-                
-                    
-                    
-    # sort_by.sort(reverse = not ascending)
-
-                    
-    
-    sorted_list = [x for x, y in sorted(zip(lst, sort_by), key=lambda pair: pair[1])]
-    # print(sorted_list01)
-    return sorted_list
 
 
 def unique_element(df, include=None, 
@@ -894,58 +844,6 @@ def unique_element(df, include=None,
     # Return the output dataframe
     return out_df
 
-
-def emblem_base(df, value_col="exposure", choose="max"):
-    # medium tested
-    """
-    For each column except for value_col, sum value_col grouped by the unique elements of each column.
-    Then, depending on the choose parameter, create a dictionary with the key being that column name and the value being the element with the highest or lowest sum of value_col.
-
-    Parameters
-    ----------
-    df : pd.DataFrame
-        The input data frame.
-    value_col : str, optional
-        The name of the column that contains the values to be summed. The default is "exposure".
-    choose : str, optional
-        The option to select the element with the highest or lowest sum of value_col. The default is "max".
-
-    Returns
-    -------
-    dictt : dict
-        The output dictionary with the column names as keys and the selected elements as values.
-
-    Examples
-    --------
-    >>> df = pd.DataFrame({'country': ['USA', 'USA', 'Canada', 'Canada', 'Mexico', 'Mexico'],
-                           'gender': ['M', 'F', 'M', 'F', 'M', 'F'],
-                           'exposure': [100, 200, 300, 400, 500, 600]})
-    >>> emblem_base(df)
-    {'country': 'Mexico', 'gender': 'F'}
-    >>> emblem_base(df, choose='min')
-    {'country': 'USA', 'gender': 'M'}
-    """
-    
-    # create an empty dictionary to store the results
-    dictt = {}
-    
-    # loop through each column except for value_col
-    for col in df.columns:
-        if col != value_col:
-            # group by the column and sum the value_col
-            grouped = df.groupby(col)[value_col].sum()
-            # depending on the choose parameter, select the element with the highest or lowest sum
-            if choose == "max":
-                element = grouped.idxmax()
-            elif choose == "min":
-                element = grouped.idxmin()
-            else:
-                raise ValueError("Invalid choose parameter. It must be either 'max' or 'min'.")
-            # add the column name and the element to the dictionary
-            dictt[col] = element
-    
-    # return the dictionary
-    return dictt
 
 
 
@@ -1050,7 +948,7 @@ def reorder_dict(df,col,begin_with = None,end_with = None):
     out_dict = dict(zip(order_df['col_name'], order_df['element_sorted']))
     return out_dict
 
-def pd_reorder(df,col,begin_with = None,end_with = None):
+def reorder(df,col,begin_with = None,end_with = None):
     mapping_dict = reorder_dict(df,col,begin_with,end_with)
     
     for col, new_order in mapping_dict.items():
@@ -1059,11 +957,11 @@ def pd_reorder(df,col,begin_with = None,end_with = None):
     return df
 
 
-def pd_shape(df):
+def shape(df):
     print("The shape ({:,} * {:,})".format(*df.shape))
 
 
-def pd_duplicate_col(df):
+def duplicate_col(df):
     # Get the column names of the DataFrame
     col_names = df.columns
     
@@ -1095,27 +993,12 @@ def pd_duplicate_col(df):
         return dup_cols
 
 
-def pd_to_str(df,cols = None,inplace = True,fill_na = False):
-    # if cols is None convert all columns to string
-    if cols is None:
-        cols_ = list(df.columns)
-    elif isinstance(cols, str):
-        # convert to list
-        cols_ = [cols]
-    else:
-        cols_ = [x for x in cols]
-        
-    if isinstance(cols_, list):
-        for col in cols_:
-            df[col] = df[col].astype(str)
-    else:
-        pass
 
 # -------------------------------------------------- imported from work Mar 17, 2024 ------------------------------------------------------
 
 
 
-def swap_columns(df, col1, col2):
+def swap_col(df, col1, col2):
     """Swap two columns in a DataFrame."""
     column_list = list(df.columns)
     col1_index, col2_index = column_list.index(col1), column_list.index(col2)
@@ -1171,7 +1054,7 @@ def count_null(df):
     result = dict(zip(df.columns, null_proportions))
     return result
 
-def pd_common_elements(series_1,series_2):
+def common_element(series_1,series_2):
     # imported from "C:\Users\Heng2020\OneDrive\Python NLP\NLP 08_VocabList\VocatList_func01.py"
 
     """
@@ -1193,7 +1076,7 @@ def pd_common_elements(series_1,series_2):
     return common_elements
 
 
-def pd_is_same(df1,df2):
+def is_same(df1,df2):
     # imported from "C:\Users\Heng2020\OneDrive\Python NLP\NLP 08_VocabList\VocatList_func01.py"
     
     """ check if each row is the same or not regardless of their row index?
@@ -1207,7 +1090,7 @@ def pd_is_same(df1,df2):
     
     return are_rows_identical
 
-# def pd_read_excel(filepath,sheet_name = 0, header = 1):
+# def read_excel(filepath,sheet_name = 0, header = 1):
 #     # this function is designed to read to pd.df that allow me to open the workbook
 #     # at the same time
 #     # medium tested
@@ -1228,7 +1111,7 @@ def pd_is_same(df1,df2):
 #     return df
 
 
-def pd_read_excel(filepath, sheet_name=0, header_row=1, start_row=None, end_row=None):
+def read_excel(filepath, sheet_name=0, header_row=1, start_row=None, end_row=None):
     import pandas as pd
     import xlwings as xw
     import numpy as np
@@ -1289,7 +1172,7 @@ def pd_read_excel(filepath, sheet_name=0, header_row=1, start_row=None, end_row=
     return out_df
 
 
-def pd_regex_index(df,regex, column):
+def regex_index(df,regex, column):
     # from C:/Users/Heng2020/OneDrive/Python NLP/NLP 07_Sentence Alignment
     # middle tested by read_movie_script
     
@@ -1336,7 +1219,7 @@ def pd_regex_index(df,regex, column):
     
     return ans_index
 
-def pd_split_into_dict_df(df,regex = None, regex_column = None, index_list = None,add_prefix_index = False):
+def split_into_dict_df(df,regex = None, regex_column = None, index_list = None,add_prefix_index = False):
     # from C:/Users/Heng2020/OneDrive/Python NLP/NLP 07_Sentence Alignment
     # middle tested by read_movie_script
     # if index_list is supplied then ignore regex, regex_column
@@ -1392,7 +1275,7 @@ def pd_split_into_dict_df(df,regex = None, regex_column = None, index_list = Non
         
     return df_dict
 
-def pd_by_column(df, columns):
+def by_column(df, columns):
     # from C:/Users/Heng2020/OneDrive/Python NLP/NLP 07_Sentence Alignment
     # middle tested by read_movie_script
     # slice the dataFrame refer to by str or int
@@ -1414,7 +1297,7 @@ def pd_by_column(df, columns):
     return out_df
 
 
-def pd_num_to_cat(data,num_to_cat_col):
+def num_to_cat(data,num_to_cat_col):
     if type(num_to_cat_col) == str:
         data[num_to_cat_col] = data[num_to_cat_col].astype(str)
     else:
@@ -1422,7 +1305,7 @@ def pd_num_to_cat(data,num_to_cat_col):
             data[col_name] = data[col_name].astype(str)
     return data
 
-def pd_num_to_cat02(data,num_to_cat_col):
+def num_to_cat02(data,num_to_cat_col):
     # change to category instead of str()
     # this also convert column(object) to category
     if type(num_to_cat_col) == str:
@@ -1435,7 +1318,7 @@ def pd_num_to_cat02(data,num_to_cat_col):
         data[obj_cols] = data[obj_cols].astype('category')
     return data
 
-def pd_drop_column(data, drop_col):
+def drop_column(data, drop_col):
     for col in drop_col:
         if col in data.columns:
             data.drop(col, axis=1, inplace=True)
@@ -1445,18 +1328,18 @@ def pd_drop_column(data, drop_col):
     return data
 
 
-def pd_cat_column(data):
+def cat_column(data):
     cat_cols = data.select_dtypes(include=['object','category']).columns.tolist()
     return cat_cols
 
-def pd_num_column(data):
+def num_column(data):
     num_cols = data.select_dtypes(include=np.number).columns.tolist()
     return num_cols
 
-def pd_select_column(data,used_col,drop_col):
+def select_column(data,used_col,drop_col):
     pass
     
-def pd_to_category(data):
+def to_category(data):
     object_cols = data.select_dtypes(include=['object']).columns
     data[object_cols] = data[object_cols].astype('category')
     return data
@@ -1478,7 +1361,7 @@ def create_dummy(data,exclude=None):
     
     return data_with_dummies
 
-def pd_combination(dict_in):
+def combination(dict_in):
     # Get all combinations of values for each key in the dictionary
     combinations = product(*dict_in.values())
     
@@ -1490,7 +1373,7 @@ def pd_combination(dict_in):
     
     return pd_combinations
 
-def pd_cat_combi(pd_in):
+def cat_combi(pd_in):
 
     cat_dict = defaultdict(list)
 
@@ -1502,7 +1385,7 @@ def pd_cat_combi(pd_in):
     cat_combi = pd_combination(cat_dict)
     return cat_combi
 
-def pd_num_combi(pd_in,n_sample = 30):
+def num_combi(pd_in,n_sample = 30):
     num_dict = defaultdict(list)
     # n_sample = # of sample to generate
     numeric_cols = pd_in.select_dtypes(include=['number']).columns.tolist()

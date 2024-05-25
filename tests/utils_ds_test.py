@@ -97,7 +97,7 @@ def test_custom_sort():
 def test_pd_get_col():
     path01 = r"C:\Users\n1603499\OneDrive - Liberty Mutual\Documents\15.02 ARM DS\2023\Project05_VN_MechanicalRefresh\Current Working Files\df_only_in_claim.csv"
     df = pd.read_csv(path01)
-    ans01 = ds.pd_get_col(df, contain="Total")
+    ans01 = ds.get_col(df, contain="Total")
 
 
 if __name__ == '__main__':
