@@ -3,7 +3,8 @@
 ## 0.1.6
 ### Immigrated
 - `rename_col_by_index`,`to_list`
-
+### Rename
+- rename all functions to comply with python convenstion
 
 <!-- example -->
 <!-- # History
