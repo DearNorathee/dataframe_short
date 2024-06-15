@@ -1003,10 +1003,10 @@ def reorder_dict(df,col,begin_with = None,end_with = None):
     -------
     out_dict : dictionary
     """
-
+    import python_wizard as pw
     df_temp = df[col]
     order_df = unique_element(df_temp)
-    order_df['element_sorted'] = order_df['elements'].apply(lambda x: custom_sort(x,begin_with,end_with))
+    order_df['element_sorted'] = order_df['elements'].apply(lambda x: pw.custom_sort(x,begin_with,end_with))
     out_dict = dict(zip(order_df['col_name'], order_df['element_sorted']))
     return out_dict
 
@@ -1319,7 +1319,7 @@ def split_into_dict_df(df,regex = None, regex_column = None, index_list = None,a
             i += 1
     else:
         if index_list is None:
-            index_list_used = pd_regex_index(df,regex,regex_column)
+            index_list_used = regex_index(df,regex,regex_column)
         else:
             index_list_used = [x for x in index_list]
         
@@ -1454,7 +1454,7 @@ def cat_combi(pd_in):
             for elem in pd_in[col].unique():
                 cat_dict[col].append(elem)
 
-    cat_combi = pd_combination(cat_dict)
+    cat_combi = combination(cat_dict)
     return cat_combi
 
 def num_combi(pd_in,n_sample = 30):
@@ -1467,14 +1467,14 @@ def num_combi(pd_in,n_sample = 30):
         max_val = pd_in[col].max()
         out_list = np.linspace(start = min_val, stop = max_val,num=num)
         num_dict[col] = list(out_list)
-    num_combi = pd_combination(num_dict)
+    num_combi = combination(num_dict)
     return num_combi
 def make_testing_val(pd_in,n_sample = 30):
     # n_sample = # of sample generate for each of numeric columns
-    cat_combi = pd_cat_combi(pd_in)
-    num_combi = pd_num_combi(pd_in,n_sample)
+    cat_combi_val = cat_combi_val(pd_in)
+    num_combi_val = num_combi_val(pd_in,n_sample)
     
-    out_df = _merge_df(cat_combi,num_combi)
+    out_df = _merge_df(cat_combi_val,num_combi_val)
     return out_df
 
 def _merge_df(df1, df2):
