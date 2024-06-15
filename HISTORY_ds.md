@@ -1,8 +1,11 @@
 # History
-
+## 0.1.7
+### Immigrated
+-   Hot functions: `mixed_type_cols`,`constrict_levels`
+- `percentile_values`,
 ## 0.1.6
 ### Immigrated
-- `rename_col_by_index`,`to_list`
+- `rename_col_by_index`,`to_list`,`percentile_values`
 ### Rename
 - rename all functions to comply with python convenstion
 

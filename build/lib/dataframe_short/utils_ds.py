@@ -853,10 +853,13 @@ def cat_report(df, include=None,
                cut_off=15, 
                sort_by='n_elements',
                ascending=True,
-               list_ascending = True
+               list_ascending = True,
+               exclude_num_cols = True,
                ):
     # little tested
     # v02 => change .append to .concat
+
+    # Added feature exclude_num_cols
     """
     This function returns a dataframe with information about the categorical columns of another dataframe.
 
@@ -872,7 +875,8 @@ def cat_report(df, include=None,
         The maximum number of unique values in a column to be considered as categorical. Default is 15.
     sort_by : str, optional
         The column name to sort the output dataframe by. It can be either 'col_name' or 'n_elements'. Default is 'n_elements'.
-
+    exclude_num_cols: bool, optional
+        If False, I would also include numerical columns 
     Returns
     -------
     out_df : pd.DataFrame
@@ -904,13 +908,26 @@ def cat_report(df, include=None,
     for col in df_.columns:
         # Check if the column is categorical
         curr_type = df_[col].dtype.name
-        if df_[col].dtype.name in ['object', 'category'] and df[col].nunique() <= cut_off:
-            # Get the number and list of unique values
-            n_elements = df_[col].nunique()
-            elements = sorted(list(df_[col].unique()),reverse = not list_ascending )
-            # Append the information to the output dataframe
-            # out_df = out_df.append({'col_name': col, 'n_elements': n_elements, 'elements': elements}, ignore_index=True)
-            out_df = pd.concat([out_df, pd.DataFrame({'col_name': [col], 'n_elements': [n_elements], 'elements': [elements]})], ignore_index=True)
+
+        
+        if exclude_num_cols:
+            if df_[col].dtype.name in ['object', 'category'] and df[col].nunique() <= cut_off:
+                # Get the number and list of unique values
+                n_elements = df_[col].nunique()
+                elements = sorted(list(df_[col].unique()),reverse = not list_ascending )
+                # Append the information to the output dataframe
+                # out_df = out_df.append({'col_name': col, 'n_elements': n_elements, 'elements': elements}, ignore_index=True)
+                out_df = pd.concat([out_df, pd.DataFrame({'col_name': [col], 'n_elements': [n_elements], 'elements': [elements]})], ignore_index=True)
+        
+        # include numerical columns
+        else:
+            if df[col].nunique() <= cut_off:
+                n_elements = df_[col].nunique()
+                elements = sorted(list(df_[col].unique()),reverse = not list_ascending )
+                # Append the information to the output dataframe
+                # out_df = out_df.append({'col_name': col, 'n_elements': n_elements, 'elements': elements}, ignore_index=True)
+                out_df = pd.concat([out_df, pd.DataFrame({'col_name': [col], 'n_elements': [n_elements], 'elements': [elements]})], ignore_index=True)
+
 
 
     # Sort the output dataframe by the specified column

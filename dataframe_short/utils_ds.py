@@ -11,8 +11,61 @@ from collections import defaultdict
 import sys
 from typing import List, Tuple, Literal, Union
 import py_string_tool as pst
+################################################## Immigrated Jun 15 2024 #################################################
+
+def percentile_values(pd_series, percentile_from=0.75, percentile_to=1, increment = 0.01) -> pd.DataFrame:
+    import pandas as pd
+    import numpy as np
+    # medium tested via pd. 1.1.3
+    """
+    Calculate percentiles for a given Pandas Series.
+
+    Args:
+        pd_series (pd.Series): The input Pandas Series.
+        percentile_from (float, optional): Starting percentile (default is 0.75).
+        percentile_to (float, optional): Ending percentile(inclusive) (default is 1.0).
+
+    Returns:
+        pd.DataFrame: A DataFrame with columns 'percentile' and 'value'.
+    """
+    percentile_list = np.arange(percentile_from,percentile_to + increment ,increment)      
+    # Calculate the specified percentiles
+    percentiles = pd_series.quantile(percentile_list)
+
+    # Create a DataFrame with the results
+    result_df = pd.DataFrame({
+        'percentile': percentile_list,
+        'value': percentiles.values
+    })
+
+    return result_df
+
+def constrict_levels(df, allowed_levels):
+    # from Claude
+    for col, levels_dict in allowed_levels.items():
+        level_set = set(levels_dict['levels'])
+        replaced_by = levels_dict.get('replaced_by')
+        
+        if replaced_by is None:
+            invalid_rows = df.loc[~df[col].isin(level_set)]
+            if not invalid_rows.empty:
+                print(f"Removing rows for column {col} with invalid levels:")
+                for idx, row in invalid_rows.iterrows():
+                    print(f"Row Index: {idx}, Invalid Level: {row[col]}")
+                df.drop(invalid_rows.index, inplace=True)
+        else:
+            df.loc[~df[col].isin(level_set), col] = replaced_by
 
 
+def mixed_type_cols(df):
+    mixed_columns_list = []
+    for column in df.columns:
+        dtype = pd.api.types.infer_dtype(df[column])
+        if 'mix' in dtype:
+            mixed_columns_list.append(column)
+    return mixed_columns_list
+
+#-------------------------------------------- Immigrated Jun 15 2024 ------------------------------------------------------------------------------
 def rename_col_by_index(df, index, new_name, inplace=True):
     """
     medium tested
@@ -300,7 +353,8 @@ def to_str(df,cols = None,inplace = True,fill_na = False):
         pass
 
 
-def x_lookup(df_main, df_lookup, lookup_col, key_col, return_col, inplace=True):
+def xlookup(df_main, df_lookup, lookup_col, key_col, return_col, inplace=True):
+    # v02 => raise Exception
     """
     Perform an XLOOKUP-like operation on DataFrames.
 
@@ -316,36 +370,27 @@ def x_lookup(df_main, df_lookup, lookup_col, key_col, return_col, inplace=True):
         pd.DataFrame: Modified df_main if inplace=True, otherwise a new DataFrame.
     """
     # Ensure lookup_col is a list
+    import pandas as pd
     if not isinstance(lookup_col, list):
         lookup_col = [lookup_col]
 
     # Merge DataFrames
     merged_df = pd.merge(df_main, df_lookup, left_on=lookup_col, right_on=key_col, how='left')
-
+    
+    df_main_cols = list(df_main.columns)
     # Keep only the specified return columns
     if isinstance(return_col, str):
         return_col = [return_col]  # Convert single column name to list
 
     if inplace:
         for col in return_col:
-            df_main[col] = merged_df[col]
+            if df_main.shape[0] != merged_df.shape[0]:
+                raise Exception(f"Please drop duplicate in df_main first. The original n_rows of df_main is {df_main.shape[0]}, but became {merged_df.shape[0]} after merging ")
+            else:
+                df_main[col] = merged_df[col]
         return df_main
     else:
-        return merged_df[return_col]
-
-def shape(df):
-    # originally from lib01
-    # but upgraded
-    # medium tested
-    import pandas as pd
-    if isinstance(df, pd.DataFrame):
-        print("The shape ({:,} * {:,})".format(*df.shape))
-    # to support when df.shape is an input
-    elif isinstance(df, tuple):
-        print("The shape ({:,} * {:,})".format(*df))
-
-
-
+        return merged_df[return_col + df_main_cols] 
 
 def sum_all(df,value_col,exclude = None, inplace = False, dropna = False):
     """ This will sum the value_col grouped by other_column """
@@ -853,10 +898,13 @@ def cat_report(df, include=None,
                cut_off=15, 
                sort_by='n_elements',
                ascending=True,
-               list_ascending = True
+               list_ascending = True,
+               exclude_num_cols = True,
                ):
     # little tested
     # v02 => change .append to .concat
+
+    # Added feature exclude_num_cols
     """
     This function returns a dataframe with information about the categorical columns of another dataframe.
 
@@ -872,7 +920,8 @@ def cat_report(df, include=None,
         The maximum number of unique values in a column to be considered as categorical. Default is 15.
     sort_by : str, optional
         The column name to sort the output dataframe by. It can be either 'col_name' or 'n_elements'. Default is 'n_elements'.
-
+    exclude_num_cols: bool, optional
+        If False, I would also include numerical columns 
     Returns
     -------
     out_df : pd.DataFrame
@@ -904,13 +953,26 @@ def cat_report(df, include=None,
     for col in df_.columns:
         # Check if the column is categorical
         curr_type = df_[col].dtype.name
-        if df_[col].dtype.name in ['object', 'category'] and df[col].nunique() <= cut_off:
-            # Get the number and list of unique values
-            n_elements = df_[col].nunique()
-            elements = sorted(list(df_[col].unique()),reverse = not list_ascending )
-            # Append the information to the output dataframe
-            # out_df = out_df.append({'col_name': col, 'n_elements': n_elements, 'elements': elements}, ignore_index=True)
-            out_df = pd.concat([out_df, pd.DataFrame({'col_name': [col], 'n_elements': [n_elements], 'elements': [elements]})], ignore_index=True)
+
+        
+        if exclude_num_cols:
+            if df_[col].dtype.name in ['object', 'category'] and df[col].nunique() <= cut_off:
+                # Get the number and list of unique values
+                n_elements = df_[col].nunique()
+                elements = sorted(list(df_[col].unique()),reverse = not list_ascending )
+                # Append the information to the output dataframe
+                # out_df = out_df.append({'col_name': col, 'n_elements': n_elements, 'elements': elements}, ignore_index=True)
+                out_df = pd.concat([out_df, pd.DataFrame({'col_name': [col], 'n_elements': [n_elements], 'elements': [elements]})], ignore_index=True)
+        
+        # include numerical columns
+        else:
+            if df[col].nunique() <= cut_off:
+                n_elements = df_[col].nunique()
+                elements = sorted(list(df_[col].unique()),reverse = not list_ascending )
+                # Append the information to the output dataframe
+                # out_df = out_df.append({'col_name': col, 'n_elements': n_elements, 'elements': elements}, ignore_index=True)
+                out_df = pd.concat([out_df, pd.DataFrame({'col_name': [col], 'n_elements': [n_elements], 'elements': [elements]})], ignore_index=True)
+
 
 
     # Sort the output dataframe by the specified column
@@ -957,9 +1019,16 @@ def reorder(df,col,begin_with = None,end_with = None):
     return df
 
 
-def shape(df):
-    print("The shape ({:,} * {:,})".format(*df.shape))
-
+def print_shape(df):
+    # originally from lib01
+    # but upgraded
+    # medium tested
+    import pandas as pd
+    if isinstance(df, pd.DataFrame):
+        print("The shape ({:,} * {:,})".format(*df.shape))
+    # to support when df.shape is an input
+    elif isinstance(df, tuple):
+        print("The shape ({:,} * {:,})".format(*df))
 
 def duplicate_col(df):
     # Get the column names of the DataFrame
