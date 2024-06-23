@@ -4,12 +4,13 @@ Created on Thu Jul 13 10:53:08 2023
 
 @author: Heng2020
 """
+
 import pandas as pd
 import numpy as np
 from itertools import product
 from collections import defaultdict
 import sys
-from typing import List, Tuple, Literal, Union
+from typing import *
 import py_string_tool as pst
 ################################################## Immigrated Jun 15 2024 #################################################
 
@@ -1180,13 +1181,16 @@ def is_same(df1,df2):
 #     return df
 
 
-def read_excel(filepath, sheet_name=0, header_row=1, start_row=None, end_row=None):
+def read_excel(filepath, sheet_name=1, header_row=1, start_row=None, end_row=None) -> pd.DataFrame:
     import pandas as pd
     import xlwings as xw
     import numpy as np
     # Hard for both Cluade3 & GPT4
     # medium tested
     # took about 1.5 hr(include testing)
+
+    # took about 1 just to get the index right
+
     """
     
     Read an Excel file into a Pandas DataFrame.
@@ -1203,41 +1207,74 @@ def read_excel(filepath, sheet_name=0, header_row=1, start_row=None, end_row=Non
             - pandas.DataFrame: The data read from the Excel file.
             - pandas.Series: The header row as a Series.
     """
+    wb = xw.Book(filepath)
+    
+    if isinstance(sheet_name,int):
+        sheet = wb.sheets[sheet_name-1]
+    elif isinstance(sheet_name,str):
+        sheet = wb.sheets[sheet_name]
+
+    used_range = sheet.used_range
+    first_used_row = used_range[0].row
+
     # header_row is False or None
     if header_row in [False,None] :
         header = False
-    else:
+    elif header_row in [1]:
         header = 1
-
-    wb = xw.Book(filepath)
-    sheet = wb.sheets[sheet_name]
-
-    used_range = sheet.used_range
-
+    else:
+        header = header_row - first_used_row +1
+    
     # Convert the used range to a Pandas DataFrame
-    df_read_ori = used_range.options(pd.DataFrame, header=header, index=False).value
-
+    if header in [None,False,1]:
+        df_read_ori = used_range.options(pd.DataFrame, header=header, index=False).value
+    else:
+        df_read_ori = used_range.options(pd.DataFrame, header=False, index=False).value
+    
+    
+    if header_row in [1] and start_row in [None] :
+        return df_read_ori
     # Get the header row as a Series
-    header_row_df = df_read_ori.iloc[[header_row - 2]]
+    header_row_df = df_read_ori.iloc[[header_row - first_used_row]]
 
     # Slice the DataFrame based on start_row and end_row
     if start_row is None:
         start_row_in = 0
+    elif header in [1]:
+        # Adjust for 0-based indexing and header row and used_range
+        # test2
+        start_row_in = start_row - first_used_row -1
     else:
-        start_row_in = start_row -2 # Adjust for 0-based indexing and header row
-
+        # test4
+        start_row_in = start_row - first_used_row 
+    
+    
     if end_row is None:
         df_info = df_read_ori.iloc[start_row_in:, :]
+        
+    elif header in [1]:
+        end_row_in = end_row - 1 - first_used_row 
+        df_info = df_read_ori.iloc[start_row_in:end_row_in+1, :]
+    
     else:
-        end_row_in = end_row - 1  # Adjust for 0-based indexing
-        df_info = df_read_ori.iloc[start_row_in:end_row_in, :]
-
+        # Adjust for 0-based indexing and header row and used_range
+        end_row_in = end_row - 1 - first_used_row 
+        df_info = df_read_ori.iloc[start_row_in:end_row_in+1+first_used_row, :]
+    
+    if header:
+        df_info = df_info.reset_index(drop=True)
+        if header in [1]:
+            return df_info
+    
     # Combine the header row and data into a single DataFrame
     out_df = pd.concat([header_row_df, df_info], ignore_index=True)
     out_df.columns = out_df.iloc[0]
     out_df = out_df[1:]
     out_df.reset_index(drop=True, inplace=True)
-
+    try:
+        out_df.columns.name = None
+    except:
+        pass
     return out_df
 
 
