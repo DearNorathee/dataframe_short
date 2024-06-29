@@ -1,10 +1,13 @@
 # History
+## 0.1.8
+### Fixed
+- `read_excel`(not done yet but should cover major of cases)
+
+
 ## 0.1.7
 ### Immigrated
 -   Hot functions: `mixed_type_cols`,`constrict_levels`
 - `percentile_values`,
-### Fixed
-- `read_excel`(not done yet but should cover major of cases)
 
 ## 0.1.6
 ### Immigrated
