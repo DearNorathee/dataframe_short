@@ -3,6 +3,8 @@
 ### Fixed
 - `read_excel`(not done yet but should cover major of cases)
 
+### Immigrated
+- `value_counts`
 
 ## 0.1.7
 ### Immigrated
