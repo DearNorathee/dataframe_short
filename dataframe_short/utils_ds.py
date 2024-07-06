@@ -14,6 +14,51 @@ from typing import *
 import py_string_tool as pst
 ################################################## Immigrated Jun 15 2024 #################################################
 
+import pandas as pd
+from typing import Union, Dict
+
+def dtype(df: pd.DataFrame, return_as_dict: bool = False) -> Union[pd.DataFrame, Dict[str, str]]:
+    # plan to have no test case
+
+    """
+    Get the data types of columns in a DataFrame.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        The input DataFrame.
+    return_as_dict : bool, default False
+        If True, return the result as a dictionary.
+
+    Returns
+    -------
+    pandas.DataFrame or dict
+        A DataFrame with columns ['column', 'dtype'] if return_as_dict is False.
+        A dictionary with column names as keys and dtypes as values if return_as_dict is True.
+
+    Examples
+    --------
+    >>> import pandas as pd
+    >>> df = pd.DataFrame({'A': [1, 2, 3], 'B': ['a', 'b', 'c'], 'C': [1.1, 2.2, 3.3]})
+    >>> dtype(df)
+       column   dtype
+    0      A    int64
+    1      B   object
+    2      C  float64
+
+    >>> dtype(df, return_as_dict=True)
+    {'A': 'int64', 'B': 'object', 'C': 'float64'}
+    """
+    result = pd.DataFrame({
+        'column': df.columns,
+        'dtype': df.dtypes.astype(str)
+    })
+    
+    if return_as_dict:
+        return dict(zip(result['column'], result['dtype']))
+    else:
+        return result
+
 def value_counts(df:pd.DataFrame,dropna:bool = False) -> pd.DataFrame:
     """
     {'count','count_prop'}
