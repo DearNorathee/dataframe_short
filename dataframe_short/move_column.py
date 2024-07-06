@@ -4,6 +4,14 @@ import polars as pl
 import datatable as dt
 import pandas as pd
 from typing import Union, List
+import numpy as np
+
+# Define my own types
+
+Scalar_Numpy = Union[np.number, np.bool_, np.object_, np.string_]
+Scalar_BuiltIn = Union[int, float, str, bool, complex]
+
+Scaler = Union[Scalar_BuiltIn,Scalar_Numpy]
 
 def to_first_col(df: pd.DataFrame, cols: Union[str, List[str]], inplace: bool = True) -> Union[pd.DataFrame, None]:
     """
