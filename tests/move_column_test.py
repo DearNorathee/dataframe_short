@@ -2,29 +2,11 @@ import dataframe_short.move_column as mc
 import pandas as pd
 import dataframe_short.utils_ds as ds 
 import inspect_py as inp
-def _get_test_data_path(filename:str,test_folder:str = 'test_data/csv' ):
-    from pathlib import Path
-    """
-    Get the absolute path to a test data file.
-    
-    Args:
-    filename (str): Name of the test data file.
-    
-    Returns:
-    pathlib.Path: Absolute path to the test data file.
-    """
-    # Get the directory of the current file
-    current_dir = Path(__file__).resolve().parent
-    
-    # Construct the path to the test_data directory
-    test_data_dir = current_dir / test_folder
-    
-    # Return the full path to the specified file
-    return test_data_dir / filename
+
 
 def test_to_first_col():
     
-    df_path01 = _get_test_data_path("04 Credit Risk Customer.csv")
+    df_path01 = ds._get_test_data_path("04 Credit Risk Customer.csv")
     df01 = pd.read_csv(df_path01) 
     
     df01_type_01 = ds.dtype(df01,True)
@@ -69,7 +51,7 @@ def test_to_first_col():
 
 def test_to_last_col():
 
-    df_path01 = _get_test_data_path("04 Credit Risk Customer.csv")
+    df_path01 = ds._get_test_data_path("04 Credit Risk Customer.csv")
     df01 = pd.read_csv(df_path01) 
     
     df01_type_01 = ds.dtype(df01,True)

@@ -17,6 +17,26 @@ import py_string_tool as pst
 import pandas as pd
 from typing import Union, Dict
 
+def _get_test_data_path(filename:str,test_folder:str = 'test_input/csv' ):
+    from pathlib import Path
+    """
+    Get the absolute path to a test data file.
+    
+    Args:
+    filename (str): Name of the test data file.
+    
+    Returns:
+    pathlib.Path: Absolute path to the test data file.
+    """
+    # Get the current folder of the current file
+    current_dir = Path(__file__).resolve().parent
+    
+    # Construct the path to the test_data directory
+    test_data_dir = current_dir / test_folder
+    
+    # Return the full path to the specified file
+    return test_data_dir / filename
+
 def dtype(df: pd.DataFrame, return_as_dict: bool = False) -> Union[pd.DataFrame, Dict[str, str]]:
     # plan to have no test case
 
@@ -1309,21 +1329,26 @@ def split_into_dict_df(df,regex = None, regex_column = None, index_list = None,a
         
     return df_dict
 
-def by_col(df, columns):
+def by_col(df:Union[pd.DataFrame], cols:Union[List,int,str]):
+
+    """
+    slice the dataFrame refer to by str or int
+    """
+
     # from C:/Users/Heng2020/OneDrive/Python NLP/NLP 07_Sentence Alignment
     # middle tested by read_movie_script
-    # slice the dataFrame refer to by str or int
+    # 
     
-    if isinstance(columns, (str,int,float)):
-        column_list = [columns]
+    if isinstance(cols, (str,int,float)):
+        column_list = [cols]
     else:
-        column_list = [x for x in columns]
+        column_list = [x for x in cols]
     
     col_index = []
     
     for col in column_list:
         if isinstance(col, str):
-            col_index.append(df.columns.get_loc[col])
+            col_index.append(df.columns.get_loc(col))
         elif isinstance(col, (int,float)):
             col_index.append(int(col))
     
