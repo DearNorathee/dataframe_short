@@ -3,6 +3,8 @@ import pandas as pd
 import dataframe_short.utils_ds as ds 
 import inspect_py as inp
 from dataframe_short.sandbox1_ds import *
+from pandas.testing import assert_frame_equal
+
 
 def test_add_prefix_num():
     # ds._get_test_data_path doesn't work for some reasons
@@ -22,6 +24,40 @@ def test_add_prefix_num():
     assert expect02 == actual02, inp.assert_message(actual02,expect02)
 
     print()
+
+def test_check_levels():
+    df1_left = pd.DataFrame({'A': [1, 2, 3], 'B': ['a', 'b', 'c']})
+    df1_right = pd.DataFrame({'X': [2, 3, 4], 'Y': ['b', 'c', 'd']})
+    cols_map = {'A': 'X', 'B': 'Y'}
+    actual01 = ds.check_levels(df1_left, df1_right, cols_map)
+    
+    expect01 = pd.DataFrame({
+    'left_col': ['A', 'B'],
+    'right_col': ['X', 'Y'],
+    'left_only': [[1], ['a']],
+    'right_only': [[4], ['d']],
+    'both': [[2, 3], ['b', 'c']]
+    })
+    
+    expect02 = pd.DataFrame({
+    'left_col': ['A', 'B'],
+    'right_col': ['X', 'Y'],
+    'left_only': [[1.0], ['a']],
+    'right_only': [[4.0], ['d']],
+    'both': [[2.0, 3.0], ['b', 'c']]
+    })
+    
+    
+    df2_left = pd.DataFrame({'A': [1, '2', 3], 'B': ['a', 'b', 'c']})
+    df2_right = pd.DataFrame({'X': [2.0, 3, 4], 'Y': ['b', 'c', 'd']})
+    
+    # Define the column mapping
+    cols_map = {'A': 'X', 'B': 'Y'}
+    
+    # Run the level check with ignore_dtype=True
+    actual02 = ds.check_levels(df2_left, df2_right, cols_map, ignore_dtype=True)
+    assert_frame_equal(actual01,expect01)
+    assert_frame_equal(actual02,expect02)
 
 
 def main():

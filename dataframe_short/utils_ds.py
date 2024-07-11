@@ -17,6 +17,11 @@ import py_string_tool as pst
 import pandas as pd
 from typing import Union, Dict
 
+import pandas as pd
+from typing import Dict, List
+
+
+
 def _get_test_data_path(filename:str,test_folder:str = 'test_input/csv' ):
     from pathlib import Path
     """
@@ -844,7 +849,7 @@ def unique_element(df, include=None,
 
 def cat_report(df, include=None, 
                exclude=None, 
-               cut_off=15, 
+               cut_off:int =1000, 
                sort_by='n_elements',
                ascending=True,
                list_ascending = True,
