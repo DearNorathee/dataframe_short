@@ -13,7 +13,7 @@ import sys
 from typing import *
 import py_string_tool as pst
 ################################################## Immigrated Jun 15 2024 #################################################
-
+import dataframe_short.move_column as mc
 import pandas as pd
 from typing import Union, Dict
 
@@ -21,8 +21,33 @@ import pandas as pd
 from typing import Dict, List
 
 
+def nice_display_df(df, display_height=300):
 
-def _get_test_data_path(filename:str,test_folder:str = 'test_input/csv' ):
+    """
+    main reason I create this is to display the row with the scrolling
+    display_height: is the height of diplayed cells
+    """
+    from IPython.display import display, HTML
+    if isinstance(df, pd.Series):
+        df_in = df.to_frame()
+        html = f"""
+        <div style="max-height: {display_height}px; overflow-y: scroll;">
+            {df_in.to_html()}
+        </div>
+        """
+        display(HTML(html))
+    else:
+        html = f"""
+        <div style="max-height: {display_height}px; overflow-y: scroll;">
+            {df.to_html()}
+        </div>
+        """
+        display(HTML(html))
+
+
+def _get_test_data_path(filename:str,test_folder:str = 'test_input/csv' ) -> str:
+    # becareful when you move this function around the file because your reference may have changed and throw an error
+
     from pathlib import Path
     """
     Get the absolute path to a test data file.
@@ -40,7 +65,7 @@ def _get_test_data_path(filename:str,test_folder:str = 'test_input/csv' ):
     test_data_dir = current_dir / test_folder
     
     # Return the full path to the specified file
-    return test_data_dir / filename
+    return str(test_data_dir / filename)
 
 def dtype(df: pd.DataFrame, return_as_dict: bool = False) -> Union[pd.DataFrame, Dict[str, str]]:
     # plan to have no test case
@@ -173,29 +198,6 @@ def rename_col_by_index(df, index, new_name, inplace=True):
     if not inplace:
         return df
 
-def to_list(df_sr_list):
-    import pandas as pd
-    # can only be used in this code bc it select 1st column(not all column)
-    # convert pd.Dataframe, series, list, or 1string to list
-    out_list = []
-    # select only 1st column
-    if isinstance(df_sr_list, list):
-        out_list = df_sr_list
-        
-    elif isinstance(df_sr_list, pd.DataFrame):
-        out_list = df_sr_list.iloc[:, 0].values.tolist()
-        
-    elif isinstance(df_sr_list, pd.Series):
-        out_list = df_sr_list.tolist()
-        
-    elif isinstance(df_sr_list, (int,float,complex,str)):
-        out_list = [df_sr_list]
-    
-    else:
-        print("This datatype is not suppored by this function")
-        return False
-    
-    return out_list
 
 def index_aligned_append(df1, df2, col_name):
     # it works: medium tested
@@ -287,7 +289,7 @@ def combine_files_to_df(
             name_filter = re.search(extract_pattern, filename).group()
         # curr_df.columns.values[0] = 'NoSentence'
         curr_df[filename_col_name] = name_filter
-        move_col_front(curr_df, filename_col_name)
+        mc.to_first_col(curr_df, filename_col_name)
         out_df = pd.concat([out_df,curr_df])
 
     return out_df

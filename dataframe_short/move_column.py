@@ -10,13 +10,106 @@ import datatable as dt
 import pandas as pd
 from typing import Union, List
 import numpy as np
-
+from inspect_py import Scaler, Scalar_Numpy, Scalar_BuiltIn
 # Define my own types
 
-Scalar_Numpy = Union[np.number, np.bool_, np.object_, np.string_]
-Scalar_BuiltIn = Union[int, float, str, bool, complex]
+def swap_col(df: Union[pd.DataFrame], 
+             col1:str, 
+             col2:str,
+             inplace: bool = True) -> Union[pd.DataFrame, None]:
+    
+    import python_wizard.pw_list as pwl
+    # not tested
+    """
+    Swapp column of df
 
-Scaler = Union[Scalar_BuiltIn,Scalar_Numpy]
+    """
+    # TOADD_01: find the most similar column name
+
+    cols = [col1,col2]
+
+    if isinstance(df,pd.DataFrame):
+        # Ensure all specified columns exist in the DataFrame
+        non_existent = set(cols) - set(df.columns)
+        if non_existent:
+            raise ValueError(f"Columns {non_existent} do not exist in the DataFrame")
+        
+
+        
+        # Create the new column order
+        new_order = pwl.swap_item(list(df.columns), col1, col2)
+        
+        if inplace:
+            # Reorder the columns in-place
+            df.sort_index(axis=1, key=lambda x: pd.Index([new_order.index(c) if c in new_order else len(df.columns) for c in x]), inplace=True)
+            return None
+        else:
+            # Create a new DataFrame with the new order
+            return df.reindex(columns=new_order)
+
+def to_first_col(df: pd.DataFrame, cols: Union[str, List[str]], inplace: bool = True) -> Union[pd.DataFrame, None]:
+    # 1 shot from Claude 3.5, July 6, 24
+    """
+    Reorder the columns of a dataframe by moving some columns to the front while preserving dtypes.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        The dataframe to reorder.
+    cols : str or list of str
+        The column name or names to move to the front.
+    inplace : bool, optional
+        Whether to modify the original dataframe or return a new one. Default is True.
+
+    Returns
+    -------
+    pandas.DataFrame or None
+        The reordered dataframe if inplace is False, otherwise None.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6], 'C': [7, 8, 9]})
+    >>> df
+       A  B  C
+    0  1  4  7
+    1  2  5  8
+    2  3  6  9
+    >>> to_first_col(df, 'C')
+    >>> df
+       C  A  B
+    0  7  1  4
+    1  8  2  5
+    2  9  3  6
+    >>> result = to_first_col(df, ['B', 'C'], inplace=False)
+    >>> result
+       B  C  A
+    0  4  7  1
+    1  5  8  2
+    2  6  9  3
+    """
+    
+    # Convert cols to a list if it is a string
+    if isinstance(cols, str):
+        cols = [cols]
+    
+    # Ensure all specified columns exist in the DataFrame
+    non_existent = set(cols) - set(df.columns)
+    if non_existent:
+        raise ValueError(f"Columns {non_existent} do not exist in the DataFrame")
+    
+    # Create a list of the remaining columns
+    cols_remain = [x for x in df.columns if x not in cols]
+    
+    # Create the new column order
+    new_order = cols + cols_remain
+    
+    if inplace:
+        # Reorder the columns in-place
+        df.sort_index(axis=1, key=lambda x: pd.Index([new_order.index(c) if c in new_order else len(df.columns) for c in x]), inplace=True)
+        return None
+    else:
+        # Create a new DataFrame with the new order
+        return df.reindex(columns=new_order)
 
 def to_first_col(df: pd.DataFrame, cols: Union[str, List[str]], inplace: bool = True) -> Union[pd.DataFrame, None]:
     # 1 shot from Claude 3.5, July 6, 24
@@ -148,93 +241,13 @@ def to_last_col(df: pd.DataFrame, cols: Union[str, List[str]], inplace: bool = T
         return df.reindex(columns=new_order)
     
 
-
-# def to_front_of(df: pd.DataFrame, col_ref: Union[str, int], cols_to_move: Union[str, List[str]], inplace: bool = True) -> Union[pd.DataFrame, None]:
-    # from Claude
-#     """
-#     Reorder the columns of a dataframe by moving specified columns in front of a reference column while preserving dtypes.
-
-#     Parameters
-#     ----------
-#     df : pandas.DataFrame
-#         The dataframe to reorder.
-#     col_ref : str or int
-#         The reference column name (str) or index (int) to move the columns in front of.
-#     cols_to_move : str or list of str
-#         The column name or names to move.
-#     inplace : bool, optional
-#         Whether to modify the original dataframe or return a new one. Default is True.
-
-#     Returns
-#     -------
-#     pandas.DataFrame or None
-#         The reordered dataframe if inplace is False, otherwise None.
-
-#     Examples
-#     --------
-#     >>> df = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6], 'C': [7, 8, 9], 'D': [10, 11, 12]})
-#     >>> df
-#        A  B  C   D
-#     0  1  4  7  10
-#     1  2  5  8  11
-#     2  3  6  9  12
-#     >>> to_front_of(df, 'C', ['A', 'D'])
-#     >>> df
-#        A   D  C  B
-#     0  1  10  7  4
-#     1  2  11  8  5
-#     2  3  12  9  6
-#     >>> result = to_front_of(df, 1, 'D', inplace=False)
-#     >>> result
-#        A  D  B  C
-#     0  1 10  4  7
-#     1  2 11  5  8
-#     2  3 12  6  9
-#     """
-    
-#     # Convert cols_to_move to a list if it is a string
-#     if isinstance(cols_to_move, str):
-#         cols_to_move = [cols_to_move]
-    
-#     # Ensure all specified columns exist in the DataFrame
-#     non_existent = set(cols_to_move) - set(df.columns)
-#     if non_existent:
-#         raise ValueError(f"Columns {non_existent} do not exist in the DataFrame")
-    
-#     # Get the index of the reference column
-#     if isinstance(col_ref, str):
-#         if col_ref not in df.columns:
-#             raise ValueError(f"Reference column '{col_ref}' does not exist in the DataFrame")
-#         ref_index = df.columns.get_loc(col_ref)
-#     elif isinstance(col_ref, int):
-#         if col_ref < 0 or col_ref >= len(df.columns):
-#             raise ValueError(f"Reference column index {col_ref} is out of bounds")
-#         ref_index = col_ref
-#     else:
-#         raise TypeError("col_ref must be either a string (column name) or an integer (column index)")
-
-#     # Create the new column order
-#     current_order = df.columns.tolist()
-#     for col in reversed(cols_to_move):
-#         current_order.remove(col)
-#         current_order.insert(ref_index, col)
-
-#     if inplace:
-#         # Reorder the columns in-place
-#         df.sort_index(axis=1, key=lambda x: pd.Index([current_order.index(c) for c in x]), inplace=True)
-#         return None
-#     else:
-#         # Create a new DataFrame with the new order
-#         return df.reindex(columns=current_order)
-    
-
 def to_front_of(df: pd.DataFrame, col_ref: Union[str, int], cols_to_move: Union[str, List[str]], inplace: bool = True) -> Union[pd.DataFrame, None]:
-    # not done 
+    import python_wizard as pw
+    import python_wizard.pw_list as pwl
+    # it works now :>
+    # seems to work now with the help of pwl.to_front_of
 
-    # still doesn't work when 
-
-    # From ChatGPT 4o as of July 6, 24
-    # hard for 
+    # hard for ChatGPT 4o& Claude 3.5 as of July 6, 24
 
 
     """
@@ -280,30 +293,96 @@ def to_front_of(df: pd.DataFrame, col_ref: Union[str, int], cols_to_move: Union[
     
     # Convert cols_to_move to a list if it is a string
     if isinstance(cols_to_move, str):
-        cols_to_move = [cols_to_move]
-
-    # Ensure all specified columns exist in the DataFrame
-    non_existent = set(cols_to_move) - set(df.columns)
-    if non_existent:
-        raise ValueError(f"Columns {non_existent} do not exist in the DataFrame")
-
-    # Determine the index of the reference column
-    if isinstance(col_ref, int):
-        if col_ref < 0 or col_ref >= len(df.columns):
-            raise ValueError("col_ref index is out of range")
-        col_ref_index = col_ref
-    elif isinstance(col_ref, str):
-        if col_ref not in df.columns:
-            raise ValueError(f"Column '{col_ref}' does not exist in the DataFrame")
-        col_ref_index = df.columns.get_loc(col_ref)
+        cols_to_move_in = [cols_to_move]
     else:
-        raise ValueError("col_ref must be a string or an integer")
+        cols_to_move_in = list(cols_to_move)
 
-    # Create a list of the remaining columns
-    cols_remain = [x for x in df.columns if x not in cols_to_move]
 
     # Create the new column order
-    new_order = cols_remain[:col_ref_index] + cols_to_move + cols_remain[col_ref_index:]
+    new_order = pwl.to_front_of(list(df.columns), col_ref, cols_to_move_in)
+
+    if inplace:
+        # Reorder the columns in-place
+        df.sort_index(axis=1, key=lambda x: pd.Index([new_order.index(c) if c in new_order else len(df.columns) for c in x]), inplace=True)
+        return None
+    else:
+        # Create a new DataFrame with the new order
+        return df.reindex(columns=new_order)
+    
+def to_back_of(df: pd.DataFrame, col_ref: Union[str, int], cols_to_move: Union[str, List[str]], inplace: bool = True) -> Union[pd.DataFrame, None]:
+    # not tested
+    """
+    Move specified column(s) to the back of a DataFrame, positioning them after a reference column.
+
+    This function rearranges the columns of a DataFrame, moving the specified column(s) to a position
+    immediately after the reference column. If multiple columns are specified to be moved, they will
+    maintain their relative order.
+
+    Parameters:
+    -----------
+    df : pd.DataFrame
+        The input DataFrame whose columns are to be rearranged.
+    
+    col_ref : Union[str, int]
+        The reference column. The columns to be moved will be placed immediately after this column.
+        Can be either a column name (string) or column index (integer).
+    
+    cols_to_move : Union[str, List[str]]
+        The column(s) to be moved. Can be either a single column name (string) or a list of column names.
+    
+    inplace : bool, default True
+        If True, modifies the DataFrame in-place and returns None.
+        If False, returns a new DataFrame with rearranged columns.
+
+    Returns:
+    --------
+    Union[pd.DataFrame, None]
+        If inplace=True, returns None after modifying the input DataFrame in-place.
+        If inplace=False, returns a new DataFrame with the rearranged columns.
+
+    Raises:
+    -------
+    ValueError
+        If col_ref or any of cols_to_move are not present in the DataFrame.
+
+    Notes:
+    ------
+    - This function uses the `python_wizard` and `python_wizard.pw_list` modules.
+    - The implementation relies on the `pwl.to_back_of` function to determine the new column order.
+    - When inplace=True, the function uses DataFrame's sort_index method with a custom key function
+      to reorder the columns efficiently.
+
+    Examples:
+    ---------
+    >>> import pandas as pd
+    >>> df = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6], 'C': [7, 8, 9], 'D': [10, 11, 12]})
+    >>> to_back_of(df, 'B', ['A', 'C'])
+    >>> print(df.columns)
+    Index(['B', 'D', 'A', 'C'], dtype='object')
+
+    >>> df = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6], 'C': [7, 8, 9], 'D': [10, 11, 12]})
+    >>> new_df = to_back_of(df, 'B', 'A', inplace=False)
+    >>> print(new_df.columns)
+    Index(['B', 'C', 'D', 'A'], dtype='object')
+    """
+
+    import python_wizard.pw_list as pwl
+    # not done 
+    # seems to work now with the help of pwl.to_front_of
+    # still doesn't work when 
+
+    # From ChatGPT 4o as of July 6, 24
+    # hard for 
+    
+    # Convert cols_to_move to a list if it is a string
+    if isinstance(cols_to_move, str):
+        cols_to_move_in = [cols_to_move]
+    else:
+        cols_to_move_in = list(cols_to_move)
+
+
+    # Create the new column order
+    new_order = pwl.to_back_of(list(df.columns), col_ref, cols_to_move_in)
 
     if inplace:
         # Reorder the columns in-place
