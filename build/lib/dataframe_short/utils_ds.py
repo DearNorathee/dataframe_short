@@ -13,6 +13,109 @@ import sys
 from typing import *
 import py_string_tool as pst
 ################################################## Immigrated Jun 15 2024 #################################################
+import dataframe_short.move_column as mc
+import pandas as pd
+from typing import Union, Dict
+
+import pandas as pd
+from typing import Dict, List
+
+
+def nice_display_df(df, display_height=300):
+
+    """
+    main reason I create this is to display the row with the scrolling
+    display_height: is the height of diplayed cells
+    """
+    from IPython.display import display, HTML
+    if isinstance(df, pd.Series):
+        df_in = df.to_frame()
+        html = f"""
+        <div style="max-height: {display_height}px; overflow-y: scroll;">
+            {df_in.to_html()}
+        </div>
+        """
+        display(HTML(html))
+    else:
+        html = f"""
+        <div style="max-height: {display_height}px; overflow-y: scroll;">
+            {df.to_html()}
+        </div>
+        """
+        display(HTML(html))
+
+
+def _get_test_data_path(filename:str,test_folder:str = 'test_input/csv' ) -> str:
+    # becareful when you move this function around the file because your reference may have changed and throw an error
+
+    from pathlib import Path
+    """
+    Get the absolute path to a test data file.
+    
+    Args:
+    filename (str): Name of the test data file.
+    
+    Returns:
+    pathlib.Path: Absolute path to the test data file.
+    """
+    # Get the current folder of the current file
+    current_dir = Path(__file__).resolve().parent
+    
+    # Construct the path to the test_data directory
+    test_data_dir = current_dir / test_folder
+    
+    # Return the full path to the specified file
+    return str(test_data_dir / filename)
+
+def dtype(df: pd.DataFrame, return_as_dict: bool = False) -> Union[pd.DataFrame, Dict[str, str]]:
+    # plan to have no test case
+
+    """
+    Get the data types of columns in a DataFrame.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        The input DataFrame.
+    return_as_dict : bool, default False
+        If True, return the result as a dictionary.
+
+    Returns
+    -------
+    pandas.DataFrame or dict
+        A DataFrame with columns ['column', 'dtype'] if return_as_dict is False.
+        A dictionary with column names as keys and dtypes as values if return_as_dict is True.
+
+    Examples
+    --------
+    >>> import pandas as pd
+    >>> df = pd.DataFrame({'A': [1, 2, 3], 'B': ['a', 'b', 'c'], 'C': [1.1, 2.2, 3.3]})
+    >>> dtype(df)
+       column   dtype
+    0      A    int64
+    1      B   object
+    2      C  float64
+
+    >>> dtype(df, return_as_dict=True)
+    {'A': 'int64', 'B': 'object', 'C': 'float64'}
+    """
+    result = pd.DataFrame({
+        'column': df.columns,
+        'dtype': df.dtypes.astype(str)
+    })
+    
+    if return_as_dict:
+        return dict(zip(result['column'], result['dtype']))
+    else:
+        return result
+
+def value_counts(df:pd.DataFrame,dropna:bool = False) -> pd.DataFrame:
+    """
+    {'count','count_prop'}
+    """
+    df_count = pd.concat([df.value_counts(dropna= dropna),df.value_counts(normalize=True,dropna=dropna)], axis = 1)
+    df_count.columns = ['count','count_prop']
+    return df_count
 
 def percentile_values(pd_series, percentile_from=0.75, percentile_to=1, increment = 0.01) -> pd.DataFrame:
     import pandas as pd
@@ -95,29 +198,6 @@ def rename_col_by_index(df, index, new_name, inplace=True):
     if not inplace:
         return df
 
-def to_list(df_sr_list):
-    import pandas as pd
-    # can only be used in this code bc it select 1st column(not all column)
-    # convert pd.Dataframe, series, list, or 1string to list
-    out_list = []
-    # select only 1st column
-    if isinstance(df_sr_list, list):
-        out_list = df_sr_list
-        
-    elif isinstance(df_sr_list, pd.DataFrame):
-        out_list = df_sr_list.iloc[:, 0].values.tolist()
-        
-    elif isinstance(df_sr_list, pd.Series):
-        out_list = df_sr_list.tolist()
-        
-    elif isinstance(df_sr_list, (int,float,complex,str)):
-        out_list = [df_sr_list]
-    
-    else:
-        print("This datatype is not suppored by this function")
-        return False
-    
-    return out_list
 
 def index_aligned_append(df1, df2, col_name):
     # it works: medium tested
@@ -209,149 +289,11 @@ def combine_files_to_df(
             name_filter = re.search(extract_pattern, filename).group()
         # curr_df.columns.values[0] = 'NoSentence'
         curr_df[filename_col_name] = name_filter
-        move_col_front(curr_df, filename_col_name)
+        mc.to_first_col(curr_df, filename_col_name)
         out_df = pd.concat([out_df,curr_df])
 
     return out_df
 
-
-# ########################################## imported from work Mar 17, 2024 #######################################################################
-def to_str_decimal(df,cols,decimal_place = 1, inplace = True, except_level = []):
-    # based on pd = 2.1.0
-    # Next: add except_level
-    from pandas.api.types import is_numeric_dtype
-
-    if isinstance(cols,list):
-        except_level_in = list(cols)
-    else:
-        except_level_in = [except_level]
-
-    if isinstance(cols,list):
-        cols_in = list(cols)
-    else:
-        cols_in = [cols]
-    
-    for col in cols_in:
-        if is_numeric_dtype(df[col]):
-            df[col] = df[col].apply(lambda row: f"{row:.{decimal_place}f}")
-        # df[col] = df[col].apply(lambda row: f"{row:.{decimal_place}f}" if row not in except_level, axis = 1)
-
-def to_datetime(df,cols = None,inplace=True, print_col = True):
-    # little tested
-    # required: pd_get_col
-    """
-    Convert columns of a DataFrame to datetime dtype.
-
-    This function uses the pd.to_datetime() function to convert the columns
-    of a DataFrame that contain date-like values to datetime dtype. It can
-    either modify the original DataFrame or return a new one.
-
-    Parameters
-    ----------
-    df : pandas.DataFrame
-        The DataFrame to convert.
-    cols : list-like, optional
-        The list of column names or positions to convert. If None, the function
-        will use the pd_get_col() function to find the columns that contain
-        'date' in their names. Default None.
-    inplace : bool, optional
-        Whether to modify the original DataFrame or return a new one. If True,
-        the original DataFrame will be modified and nothing will be returned.
-        If False, a new DataFrame will be returned and the original one will
-        be unchanged. Default True.
-
-    Returns
-    -------
-    pandas.DataFrame or None
-        A new DataFrame with the converted columns, or None if inplace is True.
-
-    Examples
-    --------
-    >>> df = pd.DataFrame({'date': ['2020-01-01', '2020-01-02'],
-                           'value': [1, 2]})
-    >>> df
-            date  value
-    0 2020-01-01      1
-    1 2020-01-02      2
-    >>> pd_to_datetime(df)
-    >>> df
-          date  value
-    0 2020-01-01      1
-    1 2020-01-02      2
-    >>> df.dtypes
-    date     datetime64[ns]
-    value             int64
-    dtype: object
-    >>> pd_to_datetime(df, cols=['value'], inplace=False)
-          date      value
-    0 2020-01-01 1970-01-01
-    1 2020-01-02 1970-01-02
-    """
-
-    import pandas as pd
-
-    if cols is None:
-        cols = get_col(df,contain='date',print_col=print_col)
-
-    
-    out_df = pd.DataFrame()
-    
-    if not inplace:
-        out_df = df.copy()
-    
-    for col in cols:
-        if inplace:
-            df[col] = pd.to_datetime(df[col]) 
-        else:
-            out_df[col] = pd.to_datetime(out_df[col]) 
-    
-    if not inplace:
-        return out_df
-
-def to_num(df,cols,num_type = "int64",inplace = True,fill_na = 0):
-    # fill_na has to be 0 for it to work properly ----> need more investigation
-    
-    # it seems to work even when it's already number
-    # must import
-    from pandas.api.types import is_object_dtype
-    if isinstance(cols, str):
-        # convert to list
-        cols_ = [cols]
-    else:
-        cols_ = [x for x in cols]
-        
-    if isinstance(cols_, list):
-        for col in cols_:
-            if is_object_dtype(df[col]):
-                try:
-                    df[col] = df[col].str.replace("," ,  "")
-                    if fill_na is not False: 
-                        df[col] = df[col].fillna(fill_na)
-                    # df[col] = df[col].astype(num_type)
-                    df[col] = pd.to_numeric(df[col],errors='coerce')
-                except Exception as e:
-                    e_str = str(e)
-                    print(e_str)
-                    print(f"'{col}' has an error")
-
-    else:
-        pass
-
-def to_str(df,cols = None,inplace = True,fill_na = False):
-    # if cols is None convert all columns to string
-    if cols is None:
-        cols_ = list(df.columns)
-    elif isinstance(cols, str):
-        # convert to list
-        cols_ = [cols]
-    else:
-        cols_ = [x for x in cols]
-        
-    if isinstance(cols_, list):
-        for col in cols_:
-            df[col] = df[col].astype(str)
-    else:
-        pass
 
 
 def xlookup(df_main, df_lookup, lookup_col, key_col, return_col, inplace=True):
@@ -660,138 +602,13 @@ def merge(left,
 
 
 
-def move_col_front(df, cols, inplace=True):
+
+def check_col_exist(df:Union[pd.DataFrame], columns:List[str]) -> List[Tuple[str, bool]]:
+
     """
-    old code
-    # based on pd version == 2.1.3
-    
-    Reorder the columns of a dataframe by moving some columns to the front.
-
-    Parameters
-    ----------
-    df : pandas.DataFrame
-        The dataframe to reorder.
-    cols : str or list of str
-        The column name or names to move to the front.
-    inplace : bool, optional
-        Whether to modify the original dataframe or return a new one. Default is True.
-
-    Returns
-    -------
-    pandas.DataFrame or None
-        The reordered dataframe if inplace is False, otherwise None.
-
-    Examples
-    --------
-    >>> df = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6], 'C': [7, 8, 9]})
-    >>> df
-       A  B  C
-    0  1  4  7
-    1  2  5  8
-    2  3  6  9
-
-    >>> pd_move_col_front(df, 'C')
-    >>> df
-       C  A  B
-    0  7  1  4
-    1  8  2  5
-    2  9  3  6
-
-    >>> pd_move_col_front(df, ['B', 'C'], inplace=False)
-       B  C  A
-    0  4  7  1
-    1  5  8  2
+    check if the columns in columns are in df.columns
     """
-    
-    # Convert cols to a list if it is a string
-    if isinstance(cols, str):
-        cols = [cols]
 
-    # Create a list of the remaining columns
-    cols_remain = [x for x in df.columns if x not in cols]
-
-    # Reorder the columns by concatenating the two lists
-    df_new = df[cols + cols_remain]
-
-    # Modify the original dataframe or return a new one depending on inplace parameter
-    if inplace:
-        df.columns = df_new.columns
-        df[:] = df_new
-        # return None
-    else:
-        return df_new
-
-# def move_col_front(df, cols, inplace=True):
-#     """
-#     from Claude 3(solo)
-#     # based on pd version == 2.1.3
-
-#     Reorder the columns of a dataframe by moving some columns to the front.
-
-#     Parameters
-#     ----------
-#     df : pandas.DataFrame
-#         The dataframe to reorder.
-#     cols : str or list of str
-#         The column name or names to move to the front.
-#     inplace : bool, optional
-#         Whether to modify the original dataframe or return a new one. Default is True.
-
-#     Returns
-#     -------
-#     pandas.DataFrame or None
-#         The reordered dataframe if inplace is False, otherwise None.
-
-#     Examples
-#     --------
-#     >>> df = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6], 'C': [7, 8, 9]})
-#     >>> df
-#        A  B  C
-#     0  1  4  7
-#     1  2  5  8
-#     2  3  6  9
-
-#     >>> pd_move_col_front(df, 'C')
-#     >>> df
-#        C  A  B
-#     0  7  1  4
-#     1  8  2  5
-#     2  9  3  6
-
-#     >>> pd_move_col_front(df, ['B', 'C'], inplace=False)
-#        B  C  A
-#     0  4  7  1
-#     1  5  8  2
-#     2  6  9  3
-#     """
-#     # Convert cols to a list if it is a string
-#     if isinstance(cols, str):
-#         cols = [cols]
-
-#     # Create a list of the remaining columns
-#     cols_remain = [x for x in df.columns if x not in cols]
-
-#     # Get the original data types of the columns
-#     dtypes = {col: df[col].dtypes for col in df.columns}
-
-#     # Reorder the columns by concatenating the two lists
-#     df_new = df[cols + cols_remain]
-
-#     # Modify the original dataframe or return a new one depending on inplace parameter
-#     if inplace:
-#         # Replace the data in the original DataFrame with the reordered data
-#         df[:] = df_new
-
-#         # Restore the original data types of the columns
-#         for col in df.columns:
-#             df[col] = df[col].astype(dtypes[col])
-#         # return None
-#     else:
-#         return df_new
-
-
-
-def check_col(df, columns):
     # Create an empty list to store the tuples
     result = []
     
@@ -896,7 +713,7 @@ def unique_element(df, include=None,
 
 def cat_report(df, include=None, 
                exclude=None, 
-               cut_off=15, 
+               cut_off:int =1000, 
                sort_by='n_elements',
                ascending=True,
                list_ascending = True,
@@ -1068,16 +885,7 @@ def duplicate_col(df):
 
 
 
-def swap_col(df, col1, col2):
-    """Swap two columns in a DataFrame."""
-    column_list = list(df.columns)
-    col1_index, col2_index = column_list.index(col1), column_list.index(col2)
-    
-    # Swap the positions in the column list
-    column_list[col2_index], column_list[col1_index] = column_list[col1_index], column_list[col2_index]
-    
-    # Reorder the DataFrame according to the new column list
-    return df[column_list]
+
 
 
 def value_index(df, value):
@@ -1381,21 +1189,26 @@ def split_into_dict_df(df,regex = None, regex_column = None, index_list = None,a
         
     return df_dict
 
-def by_col(df, columns):
+def by_col(df:Union[pd.DataFrame], cols:Union[List,int,str]):
+
+    """
+    slice the dataFrame refer to by str or int
+    """
+
     # from C:/Users/Heng2020/OneDrive/Python NLP/NLP 07_Sentence Alignment
     # middle tested by read_movie_script
-    # slice the dataFrame refer to by str or int
+    # 
     
-    if isinstance(columns, (str,int,float)):
-        column_list = [columns]
+    if isinstance(cols, (str,int,float)):
+        column_list = [cols]
     else:
-        column_list = [x for x in columns]
+        column_list = [x for x in cols]
     
     col_index = []
     
     for col in column_list:
         if isinstance(col, str):
-            col_index.append(df.columns.get_loc[col])
+            col_index.append(df.columns.get_loc(col))
         elif isinstance(col, (int,float)):
             col_index.append(int(col))
     
@@ -1448,11 +1261,6 @@ def num_col(data):
 def select_col(data,used_col,drop_col):
     pass
     
-def to_category(data):
-    object_cols = data.select_dtypes(include=['object']).columns
-    data[object_cols] = data[object_cols].astype('category')
-    return data
-
 def create_dummy(data,exclude=None):
     # Get the list of categorical and object columns
     categorical_cols = data.select_dtypes(include=['category', 'object']).columns
