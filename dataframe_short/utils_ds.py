@@ -59,13 +59,13 @@ def _get_test_data_path(filename:str,test_folder:str = 'test_input/csv' ) -> str
     pathlib.Path: Absolute path to the test data file.
     """
     # Get the current folder of the current file
-    current_dir = Path(__file__).resolve().parent
+    # current_dir = Path(__file__).resolve().parent
     
     # Construct the path to the test_data directory
-    test_data_dir = current_dir / test_folder
+    # test_data_dir = current_dir / test_folder
     
     # Return the full path to the specified file
-    return str(test_data_dir / filename)
+    return str(Path(test_folder) / filename)
 
 def dtype(df: pd.DataFrame, return_as_dict: bool = False) -> Union[pd.DataFrame, Dict[str, str]]:
     # plan to have no test case
