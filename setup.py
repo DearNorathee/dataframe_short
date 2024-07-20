@@ -15,7 +15,9 @@ setup(
                       "datatable",
                       "polars",
                       "python_wizard >= 0.1.3",
-                      "pyxlsb"],
+                      "pyxlsb",
+                      "inspect_py>=0.1.2"
+                      ],
     
  
 )
