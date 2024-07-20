@@ -2,11 +2,37 @@ import dataframe_short.move_column as mc
 import pandas as pd
 import dataframe_short.utils_ds as ds 
 import inspect_py as inp
+from typing import *
+
+def _get_test_data_path() -> Dict[int,str]:
+    # becareful when you move this function around the file because your reference may have changed and throw an error
+
+    from pathlib import Path
+    """
+    Get the absolute path to a test data file.
+    For edit path manually
+    
+    Args:
+    filename (str): Name of the test data file.
+    
+    Returns:
+    pathlib.Path: Absolute path to the test data file.
+    """
+    # Get the current folder of the current file
+    # current_dir = Path(__file__).resolve().parent
+    
+    # Construct the path to the test_data directory
+    # test_data_dir = current_dir / test_folder
+    
+    # Return the full path to the specified file
+    out_dict = {}
+    out_dict[1] = r"Python MyLib 01\02 DataFrame\dataframe_short\tests\test_input\csv\01 Credit Risk Customer.csv"
+    return out_dict
 
 
 def test_to_front_of():
 
-    df_path01 = ds._get_test_data_path("04 Credit Risk Customer.csv")
+    df_path01 = _get_test_data_path()[1]
     df01 = pd.read_csv(df_path01) 
     
     df01_type_01 = ds.dtype(df01,True)
@@ -53,8 +79,8 @@ def test_to_front_of():
     # try to move the columns that aren't in df01
     # this should throw ValueError
     try:
-        mc.to_front_of(df01,['housing','num dependents','installment commitment'])
-    except Exception  as e:
+        mc.to_front_of(df01,'own_telephone',['housing','num dependents','installment commitment'])
+    except Exception as e:
         assert isinstance(e, ValueError), inp.assert_message(e,ValueError)
     
     
@@ -62,7 +88,7 @@ def test_to_front_of():
 
 def test_to_first_col():
     
-    df_path01 = ds._get_test_data_path("04 Credit Risk Customer.csv")
+    df_path01 = _get_test_data_path()[1]
     df01 = pd.read_csv(df_path01) 
     
     df01_type_01 = ds.dtype(df01,True)
@@ -107,7 +133,7 @@ def test_to_first_col():
 
 def test_to_last_col():
 
-    df_path01 = ds._get_test_data_path("04 Credit Risk Customer.csv")
+    df_path01 = _get_test_data_path()[1]
     df01 = pd.read_csv(df_path01) 
     
     df01_type_01 = ds.dtype(df01,True)

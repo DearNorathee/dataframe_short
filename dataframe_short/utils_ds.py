@@ -45,28 +45,6 @@ def display_nice_df(df, display_height=300):
         display(HTML(html))
 
 
-def _get_test_data_path(filename:str,test_folder:str = 'test_input/csv' ) -> str:
-    # becareful when you move this function around the file because your reference may have changed and throw an error
-
-    from pathlib import Path
-    """
-    Get the absolute path to a test data file.
-    
-    Args:
-    filename (str): Name of the test data file.
-    
-    Returns:
-    pathlib.Path: Absolute path to the test data file.
-    """
-    # Get the current folder of the current file
-    # current_dir = Path(__file__).resolve().parent
-    
-    # Construct the path to the test_data directory
-    # test_data_dir = current_dir / test_folder
-    
-    # Return the full path to the specified file
-    return str(Path(test_folder) / filename)
-
 def dtype(df: pd.DataFrame, return_as_dict: bool = False) -> Union[pd.DataFrame, Dict[str, str]]:
     # plan to have no test case
 
