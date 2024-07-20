@@ -10,7 +10,7 @@ import datatable as dt
 import pandas as pd
 from typing import Union, List
 import numpy as np
-from inspect_py import Scaler, Scalar_Numpy, Scalar_BuiltIn
+from inspect_py import Scalar, Scalar_Numpy, Scalar_BuiltIn
 # Define my own types
 
 def swap_col(df: Union[pd.DataFrame], 

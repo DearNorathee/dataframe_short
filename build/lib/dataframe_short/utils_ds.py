@@ -21,7 +21,7 @@ import pandas as pd
 from typing import Dict, List
 
 
-def nice_display_df(df, display_height=300):
+def display_nice_df(df, display_height=300):
 
     """
     main reason I create this is to display the row with the scrolling
