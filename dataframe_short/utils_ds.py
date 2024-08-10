@@ -5,6 +5,72 @@ Created on Thu Jul 13 10:53:08 2023
 @author: Heng2020
 """
 
+def group_top_n_1_col(series: pd.Series, top_n: int = 15) -> pd.Series:
+    import pandas as pd
+    """
+    Group the values in a DataFrame column after the top `n` values into a single category.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        The DataFrame containing the column to be processed.
+    col_name : str
+        The name of the column to be processed.
+    top_n : int, default 15
+        The number of top values to retain. All other values will be grouped into a single category.
+
+    Returns
+    -------
+    pd.Series
+        A Series with the same index as `df`, where the top `n` values are retained
+        and other values are replaced with 'After top {top_n}'.
+    
+    Examples
+    --------
+    >>> data = {'category': ['A', 'B', 'C', 'A', 'B', 'C', 'A', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q']}
+    >>> df = pd.DataFrame(data)
+    >>> group_top_n_1_col(df['category'], top_n=5)
+    0                A
+    1                B
+    2                C
+    3                A
+    4                B
+    5                C
+    6                A
+    7     After top 5
+    8     After top 5
+    9     After top 5
+    10    After top 5
+    11    After top 5
+    12    After top 5
+    13    After top 5
+    14    After top 5
+    15    After top 5
+    16    After top 5
+    17    After top 5
+    18    After top 5
+    19    After top 5
+    20    After top 5
+    Name: category, dtype: object
+    """
+    # Calculate value counts of the specified column
+    value_counts = series.value_counts()
+    
+    # Identify the top n values
+    top_values = value_counts.nlargest(top_n).index
+    
+    # Create a mask for top values
+    is_top_value = series.isin(top_values)
+    
+    # If the column is categorical, add the new category
+    if pd.api.types.is_categorical_dtype(series):
+        series = series.cat.add_categories([f'After top {top_n}'])
+        
+    # Use the mask to assign 'After top {top_n}' to non-top values
+    grouped_series = series.where(is_top_value, f'After top {top_n}')
+    
+    return grouped_series
+
 import pandas as pd
 import numpy as np
 from itertools import product

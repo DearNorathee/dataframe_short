@@ -1,4 +1,5 @@
-import dataframe_short.move_column as mc
+from dataframe_short.move_column import *
+# import dataframe_short.move_column as mc
 import pandas as pd
 import dataframe_short.utils_ds as ds 
 import inspect_py as inp
