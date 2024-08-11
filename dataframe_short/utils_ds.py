@@ -1,9 +1,39 @@
 # -*- coding: utf-8 -*-
+
+import pandas as pd
+from typing import *
+import dataframe_short.move_column as mc
+import numpy as np
+import polars as pl
+from pathlib import Path
+
 """
 Created on Thu Jul 13 10:53:08 2023
 
 @author: Heng2020
 """
+
+def read_data(data_path:Union[Path,str]) -> Union[pd.DataFrame] :
+    # medium tested
+    """
+    the objective of this function is to be able to read ".csv", ".parquet" or ".xlsx" in a single function call
+    """
+    import pandas as pd
+    import polars as pl
+    data_path_str = str(data_path)
+    extension = data_path_str.split(".")[-1]
+    
+    if extension in ["csv"]:
+        df = pd.read_csv(data_path_str)
+    elif extension in ["parquet"]:
+        df = pd.read_parquet(data_path_str)
+    elif extension in ["xlsx","xlsm","xlsb"]:
+        df = pd.read_excel(data_path_str)
+    else:
+        raise Exception(f"{extension} not supported ")
+        
+    return df
+
 
 def group_top_n_1_col(series: pd.Series, top_n: int = 15) -> pd.Series:
     import pandas as pd
@@ -71,20 +101,6 @@ def group_top_n_1_col(series: pd.Series, top_n: int = 15) -> pd.Series:
     
     return grouped_series
 
-import pandas as pd
-import numpy as np
-from itertools import product
-from collections import defaultdict
-import sys
-from typing import *
-import py_string_tool as pst
-################################################## Immigrated Jun 15 2024 #################################################
-import dataframe_short.move_column as mc
-import pandas as pd
-from typing import Union, Dict
-
-import pandas as pd
-from typing import Dict, List
 
 
 def display_nice_df(df, display_height=300):
@@ -1184,6 +1200,7 @@ def split_into_dict_df(df,regex = None, regex_column = None, index_list = None,a
     
     # dependency: pd_split_into_dict_df, pd_regex_index
     from collections import OrderedDict
+    import py_string_tool as pst
     df_dict = OrderedDict()
 
     # split using header
@@ -1324,6 +1341,7 @@ def create_dummy(data,exclude=None):
 
 def combination(dict_in):
     # Get all combinations of values for each key in the dictionary
+    from itertools import product
     combinations = product(*dict_in.values())
     
     # Create a list of dictionaries with all combinations of key-value pairs
@@ -1335,7 +1353,7 @@ def combination(dict_in):
     return pd_combinations
 
 def cat_combi(pd_in):
-
+    from collections import defaultdict
     cat_dict = defaultdict(list)
 
     for col in pd_in.columns:
@@ -1347,6 +1365,7 @@ def cat_combi(pd_in):
     return cat_combi
 
 def num_combi(pd_in,n_sample = 30):
+    from collections import defaultdict
     num_dict = defaultdict(list)
     # n_sample = # of sample to generate
     numeric_cols = pd_in.select_dtypes(include=['number']).columns.tolist()
