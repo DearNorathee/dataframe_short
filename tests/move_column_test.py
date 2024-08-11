@@ -36,11 +36,11 @@ def test_to_front_of():
     df_path01 = _get_test_data_path()[1]
     df01 = pd.read_csv(df_path01) 
     
-    df01_type_01 = ds.dtype(df01,True)
+    df01_type_01 = ds.dtypes(df01,True)
     
     mc.to_front_of(df01,'checking_status','residence_since')
     
-    df01_type_02 = ds.dtype(df01,True)
+    df01_type_02 = ds.dtypes(df01,True)
     
     assert df01_type_01 == df01_type_02, inp.assert_message(df01_type_02, df01_type_01)
     
@@ -51,7 +51,7 @@ def test_to_front_of():
     mc.to_front_of(df01,'residence_since',["job","class"])
     
     df01_first_2_name = df01.columns[:2].tolist()
-    df01_type_03 = ds.dtype(df01,True)
+    df01_type_03 = ds.dtypes(df01,True)
     
     assert df01_first_2_name == ["job","class"]
     
@@ -92,11 +92,11 @@ def test_to_first_col():
     df_path01 = _get_test_data_path()[1]
     df01 = pd.read_csv(df_path01) 
     
-    df01_type_01 = ds.dtype(df01,True)
+    df01_type_01 = ds.dtypes(df01,True)
     
     mc.to_first_col(df01,'residence_since')
     
-    df01_type_02 = ds.dtype(df01,True)
+    df01_type_02 = ds.dtypes(df01,True)
     
     assert df01_type_01 == df01_type_02, inp.assert_message(df01_type_02, df01_type_01)
     
@@ -107,7 +107,7 @@ def test_to_first_col():
     mc.to_first_col(df01,["job","class"])
     
     df01_first_2_name = df01.columns[:2].tolist()
-    df01_type_03 = ds.dtype(df01,True)
+    df01_type_03 = ds.dtypes(df01,True)
     
     assert df01_first_2_name == ["job","class"]
     
@@ -137,11 +137,11 @@ def test_to_last_col():
     df_path01 = _get_test_data_path()[1]
     df01 = pd.read_csv(df_path01) 
     
-    df01_type_01 = ds.dtype(df01,True)
+    df01_type_01 = ds.dtypes(df01,True)
     
     mc.to_last_col(df01,'residence_since')
     
-    df01_type_02 = ds.dtype(df01,True)
+    df01_type_02 = ds.dtypes(df01,True)
     
     assert df01_type_01 == df01_type_02, inp.assert_message(df01_type_02, df01_type_01)
     
@@ -152,7 +152,7 @@ def test_to_last_col():
     mc.to_last_col(df01,["job","class"])
     
     df01_first_2_name = df01.columns[-2:].tolist()
-    df01_type_03 = ds.dtype(df01,True)
+    df01_type_03 = ds.dtypes(df01,True)
     
     assert df01_first_2_name == ["job","class"]
     

@@ -103,31 +103,10 @@ def group_top_n_1_col(series: pd.Series, top_n: int = 15) -> pd.Series:
 
 
 
-def display_nice_df(df, display_height=300):
-
-    """
-    main reason I create this is to display the row with the scrolling
-    display_height: is the height of diplayed cells
-    """
-    from IPython.display import display, HTML
-    if isinstance(df, pd.Series):
-        df_in = df.to_frame()
-        html = f"""
-        <div style="max-height: {display_height}px; overflow-y: scroll;">
-            {df_in.to_html()}
-        </div>
-        """
-        display(HTML(html))
-    else:
-        html = f"""
-        <div style="max-height: {display_height}px; overflow-y: scroll;">
-            {df.to_html()}
-        </div>
-        """
-        display(HTML(html))
 
 
-def dtype(df: pd.DataFrame, return_as_dict: bool = False) -> Union[pd.DataFrame, Dict[str, str]]:
+
+def dtypes(df: pd.DataFrame, return_as_dict: bool = False) -> Union[pd.DataFrame, Dict[str, str]]:
     # plan to have no test case
 
     """
@@ -167,6 +146,7 @@ def dtype(df: pd.DataFrame, return_as_dict: bool = False) -> Union[pd.DataFrame,
     if return_as_dict:
         return dict(zip(result['column'], result['dtype']))
     else:
+        result = result.reset_index(drop=True)
         return result
 
 def value_counts(df:pd.DataFrame,dropna:bool = False) -> pd.DataFrame:
@@ -981,16 +961,34 @@ def value_index(df, value):
 
     return out_df
 
-def count_null(df):
-    # Get the number of null values in each column
+# def count_null(df):
+#     # Get the number of null values in each column
+#     null_counts = df.isnull().sum()
+#     # Get the total number of rows in the DataFrame
+#     total_rows = df.shape[0]
+#     # Compute the proportion of null values in each column
+#     null_proportions = null_counts / total_rows
+#     # Create a dictionary mapping column names to null proportions
+#     result = dict(zip(df.columns, null_proportions))
+#     return result
+
+def count_null(df, return_as_dict: bool = False):
+    # Calculate null counts and proportions
     null_counts = df.isnull().sum()
-    # Get the total number of rows in the DataFrame
-    total_rows = df.shape[0]
-    # Compute the proportion of null values in each column
-    null_proportions = null_counts / total_rows
-    # Create a dictionary mapping column names to null proportions
-    result = dict(zip(df.columns, null_proportions))
-    return result
+    null_proportions = null_counts / len(df)
+    
+    if return_as_dict:
+        # Return as dictionary if specified
+        return dict(null_proportions)
+    else:
+        # Create a DataFrame with the required columns
+        result_df = pd.DataFrame({
+            'column': null_counts.index,
+            'null_count': null_counts.values,
+            'null_prop': null_proportions.values
+        })
+        
+        return result_df
 
 def common_element(series_1,series_2):
     # imported from "C:\Users\Heng2020\OneDrive\Python NLP\NLP 08_VocabList\VocatList_func01.py"
