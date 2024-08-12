@@ -1,8 +1,9 @@
 from dataframe_short.utils_ds import *
+from typing import List, Dict, Literal, Union, Any
 # ########################################## imported from work Mar 17, 2024 #######################################################################
 
 
-def to_list(df_sr_list):
+def to_list(df_sr_list:Union[pd.DataFrame,pd.Series,List[Any]]):
     import pandas as pd
     # can only be used in this code bc it select 1st column(not all column)
     # convert pd.Dataframe, series, list, or 1string to list
@@ -134,39 +135,61 @@ def to_num(df,cols,num_type = "int64",inplace = True,fill_na = 0):
     from pandas.api.types import is_object_dtype
     if isinstance(cols, str):
         # convert to list
-        cols_ = [cols]
+        cols_in = [cols]
     else:
-        cols_ = [x for x in cols]
+        cols_in = [x for x in cols]
         
-    if isinstance(cols_, list):
-        for col in cols_:
-            if is_object_dtype(df[col]):
-                try:
-                    df[col] = df[col].str.replace("," ,  "")
-                    if fill_na is not False: 
-                        df[col] = df[col].fillna(fill_na)
-                    # df[col] = df[col].astype(num_type)
-                    df[col] = pd.to_numeric(df[col],errors='coerce')
-                except Exception as e:
-                    e_str = str(e)
-                    print(e_str)
-                    print(f"'{col}' has an error")
+    if isinstance(cols_in, list):
+        for col in cols_in:
+            if inplace:
+                if is_object_dtype(df[col]):
+                    try:
+                        df[col] = df[col].str.replace("," ,  "")
+                        if fill_na is not False: 
+                            df[col] = df[col].fillna(fill_na)
+                        # df[col] = df[col].astype(num_type)
+                        df[col] = pd.to_numeric(df[col],errors='coerce')
+                    except Exception as e:
+                        e_str = str(e)
+                        print(e_str)
+                        print(f"'{col}' has an error")
+
+            else:
+                df_copy = df.copy()
+                if is_object_dtype(df_copy[col]):
+                    try:
+                        df_copy[col] = df_copy[col].str.replace("," ,  "")
+                        if fill_na is not False: 
+                            df_copy[col] = df_copy[col].fillna(fill_na)
+                        # df_copy[col] = df_copy[col].astype(num_type)
+                        df_copy[col] = pd.to_numeric(df_copy[col],errors='coerce')
+                    except Exception as e:
+                        e_str = str(e)
+                        print(e_str)
+                        print(f"'{col}' has an error")
+                return df_copy
 
     else:
         pass
 
-def to_str(df,cols = None,inplace = True,fill_na = False):
+def to_str(df:Union[pd.DataFrame],cols = None,inplace = True,fill_na = False) -> Union[None,pd.DataFrame]:
+    # medium tested inplace seems to work now
     # if cols is None convert all columns to string
     if cols is None:
-        cols_ = list(df.columns)
+        cols_in = list(df.columns)
     elif isinstance(cols, str):
         # convert to list
-        cols_ = [cols]
+        cols_in = [cols]
     else:
-        cols_ = [x for x in cols]
+        cols_in = [x for x in cols]
         
-    if isinstance(cols_, list):
-        for col in cols_:
-            df[col] = df[col].astype(str)
-    else:
-        pass
+    if isinstance(cols_in, list):
+        if inplace:
+            for col in cols_in:
+                df[col] = df[col].astype(str)
+        else:
+            df_copy = df.copy()
+            for col in cols_in:
+                df_copy[col] = df_copy[col].astype(str)
+            return df_copy
+
