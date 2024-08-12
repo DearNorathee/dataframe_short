@@ -1,5 +1,5 @@
 from dataframe_short.move_column import *
-# import dataframe_short.move_column as mc
+import dataframe_short.move_column as mc
 import pandas as pd
 import dataframe_short.utils_ds as ds 
 import inspect_py as inp
@@ -29,6 +29,23 @@ def _get_test_data_path() -> Dict[int,str]:
     out_dict = {}
     out_dict[1] = r"Python MyLib 01\02 DataFrame\dataframe_short\tests\test_input\csv\01 Credit Risk Customer.csv"
     return out_dict
+
+def test_swap_col():
+    df_path01 = _get_test_data_path()[1]
+    df01 = pd.read_csv(df_path01) 
+    actual01 = mc.swap_col(df01,'purpose','checking_status',inplace=False)
+    # originally 'purpose' is in df01.columns[3], 'checking_status' in df01.columns[0]
+    assert df01.columns[3] == 'purpose'
+    assert df01.columns[0] == 'checking_status'
+
+    assert actual01.columns[3] == 'checking_status'
+    assert actual01.columns[0] == 'purpose'
+
+    mc.swap_col(df01,'purpose','checking_status',inplace=True)
+    assert df01.columns[3] == 'checking_status'
+    assert df01.columns[0] == 'purpose'
+    print()
+
 
 
 def test_to_front_of():
@@ -179,6 +196,7 @@ def test_to_last_col():
 
 
 def main():
+    test_swap_col()
     test_to_front_of()
     test_to_last_col()
     test_to_first_col()
