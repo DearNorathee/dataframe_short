@@ -1,6 +1,7 @@
-from typing import *
+from typing import Union, List, Literal
 import pandas as pd
-from dataframe_short.utils_ds import *
+from dataframe_short.utils_ds import value_counts,dtypes, count_null
+
 def return_display_html(df:Union[pd.DataFrame], display_height=300):
     """
     this is needed as simply use display_nice_df does not work in jupyter notebook
@@ -73,3 +74,13 @@ def display_null(df:pd.DataFrame, display_height=300):
     from IPython.display import display, HTML
     html = return_display_html(null_df,display_height)
     display(HTML(html))
+
+# not allow package's user to have access to these
+del Union
+del List
+del Literal
+
+del value_counts
+del dtypes
+del count_null
+
