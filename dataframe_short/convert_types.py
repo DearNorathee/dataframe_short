@@ -128,6 +128,8 @@ def to_datetime(df,cols = None,inplace=True, print_col = True):
         return out_df
 
 def to_num(df,cols,num_type = "int64",inplace = True,fill_na = 0):
+    # still doesn't work
+
     # fill_na has to be 0 for it to work properly ----> need more investigation
     
     # it seems to work even when it's already number

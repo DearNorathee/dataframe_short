@@ -1,51 +1,112 @@
 # -*- coding: utf-8 -*-
+
+import pandas as pd
+from typing import *
+import dataframe_short.move_column as mc
+import numpy as np
+import polars as pl
+from pathlib import Path
+
 """
 Created on Thu Jul 13 10:53:08 2023
 
 @author: Heng2020
 """
 
-import pandas as pd
-import numpy as np
-from itertools import product
-from collections import defaultdict
-import sys
-from typing import *
-import py_string_tool as pst
-################################################## Immigrated Jun 15 2024 #################################################
-import dataframe_short.move_column as mc
-import pandas as pd
-from typing import Union, Dict
-
-import pandas as pd
-from typing import Dict, List
-
-
-def display_nice_df(df, display_height=300):
-
+def read_data(data_path:Union[Path,str]) -> Union[pd.DataFrame] :
+    # medium tested
     """
-    main reason I create this is to display the row with the scrolling
-    display_height: is the height of diplayed cells
+    the objective of this function is to be able to read ".csv", ".parquet" or ".xlsx" in a single function call
     """
-    from IPython.display import display, HTML
-    if isinstance(df, pd.Series):
-        df_in = df.to_frame()
-        html = f"""
-        <div style="max-height: {display_height}px; overflow-y: scroll;">
-            {df_in.to_html()}
-        </div>
-        """
-        display(HTML(html))
+    import pandas as pd
+    import polars as pl
+    data_path_str = str(data_path)
+    extension = data_path_str.split(".")[-1]
+    
+    if extension in ["csv"]:
+        df = pd.read_csv(data_path_str)
+    elif extension in ["parquet"]:
+        df = pd.read_parquet(data_path_str)
+    elif extension in ["xlsx","xlsm","xlsb"]:
+        df = pd.read_excel(data_path_str)
     else:
-        html = f"""
-        <div style="max-height: {display_height}px; overflow-y: scroll;">
-            {df.to_html()}
-        </div>
-        """
-        display(HTML(html))
+        raise Exception(f"{extension} not supported ")
+        
+    return df
 
 
-def dtype(df: pd.DataFrame, return_as_dict: bool = False) -> Union[pd.DataFrame, Dict[str, str]]:
+def group_top_n_1_col(series: pd.Series, top_n: int = 15) -> pd.Series:
+    import pandas as pd
+    """
+    Group the values in a DataFrame column after the top `n` values into a single category.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        The DataFrame containing the column to be processed.
+    col_name : str
+        The name of the column to be processed.
+    top_n : int, default 15
+        The number of top values to retain. All other values will be grouped into a single category.
+
+    Returns
+    -------
+    pd.Series
+        A Series with the same index as `df`, where the top `n` values are retained
+        and other values are replaced with 'After top {top_n}'.
+    
+    Examples
+    --------
+    >>> data = {'category': ['A', 'B', 'C', 'A', 'B', 'C', 'A', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q']}
+    >>> df = pd.DataFrame(data)
+    >>> group_top_n_1_col(df['category'], top_n=5)
+    0                A
+    1                B
+    2                C
+    3                A
+    4                B
+    5                C
+    6                A
+    7     After top 5
+    8     After top 5
+    9     After top 5
+    10    After top 5
+    11    After top 5
+    12    After top 5
+    13    After top 5
+    14    After top 5
+    15    After top 5
+    16    After top 5
+    17    After top 5
+    18    After top 5
+    19    After top 5
+    20    After top 5
+    Name: category, dtype: object
+    """
+    # Calculate value counts of the specified column
+    value_counts = series.value_counts()
+    
+    # Identify the top n values
+    top_values = value_counts.nlargest(top_n).index
+    
+    # Create a mask for top values
+    is_top_value = series.isin(top_values)
+    
+    # If the column is categorical, add the new category
+    if pd.api.types.is_categorical_dtype(series):
+        series = series.cat.add_categories([f'After top {top_n}'])
+        
+    # Use the mask to assign 'After top {top_n}' to non-top values
+    grouped_series = series.where(is_top_value, f'After top {top_n}')
+    
+    return grouped_series
+
+
+
+
+
+
+def dtypes(df: pd.DataFrame, return_as_dict: bool = False) -> Union[pd.DataFrame, Dict[str, str]]:
     # plan to have no test case
 
     """
@@ -85,6 +146,7 @@ def dtype(df: pd.DataFrame, return_as_dict: bool = False) -> Union[pd.DataFrame,
     if return_as_dict:
         return dict(zip(result['column'], result['dtype']))
     else:
+        result = result.reset_index(drop=True)
         return result
 
 def value_counts(df:pd.DataFrame,dropna:bool = False) -> pd.DataFrame:
@@ -899,16 +961,34 @@ def value_index(df, value):
 
     return out_df
 
-def count_null(df):
-    # Get the number of null values in each column
+# def count_null(df):
+#     # Get the number of null values in each column
+#     null_counts = df.isnull().sum()
+#     # Get the total number of rows in the DataFrame
+#     total_rows = df.shape[0]
+#     # Compute the proportion of null values in each column
+#     null_proportions = null_counts / total_rows
+#     # Create a dictionary mapping column names to null proportions
+#     result = dict(zip(df.columns, null_proportions))
+#     return result
+
+def count_null(df, return_as_dict: bool = False):
+    # Calculate null counts and proportions
     null_counts = df.isnull().sum()
-    # Get the total number of rows in the DataFrame
-    total_rows = df.shape[0]
-    # Compute the proportion of null values in each column
-    null_proportions = null_counts / total_rows
-    # Create a dictionary mapping column names to null proportions
-    result = dict(zip(df.columns, null_proportions))
-    return result
+    null_proportions = null_counts / len(df)
+    
+    if return_as_dict:
+        # Return as dictionary if specified
+        return dict(null_proportions)
+    else:
+        # Create a DataFrame with the required columns
+        result_df = pd.DataFrame({
+            'column': null_counts.index,
+            'null_count': null_counts.values,
+            'null_prop': null_proportions.values
+        })
+        
+        return result_df
 
 def common_element(series_1,series_2):
     # imported from "C:\Users\Heng2020\OneDrive\Python NLP\NLP 08_VocabList\VocatList_func01.py"
@@ -1118,6 +1198,7 @@ def split_into_dict_df(df,regex = None, regex_column = None, index_list = None,a
     
     # dependency: pd_split_into_dict_df, pd_regex_index
     from collections import OrderedDict
+    import py_string_tool as pst
     df_dict = OrderedDict()
 
     # split using header
@@ -1258,6 +1339,7 @@ def create_dummy(data,exclude=None):
 
 def combination(dict_in):
     # Get all combinations of values for each key in the dictionary
+    from itertools import product
     combinations = product(*dict_in.values())
     
     # Create a list of dictionaries with all combinations of key-value pairs
@@ -1269,7 +1351,7 @@ def combination(dict_in):
     return pd_combinations
 
 def cat_combi(pd_in):
-
+    from collections import defaultdict
     cat_dict = defaultdict(list)
 
     for col in pd_in.columns:
@@ -1281,6 +1363,7 @@ def cat_combi(pd_in):
     return cat_combi
 
 def num_combi(pd_in,n_sample = 30):
+    from collections import defaultdict
     num_dict = defaultdict(list)
     # n_sample = # of sample to generate
     numeric_cols = pd_in.select_dtypes(include=['number']).columns.tolist()

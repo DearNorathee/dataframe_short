@@ -19,7 +19,7 @@ def swap_col(df: Union[pd.DataFrame],
              inplace: bool = True) -> Union[pd.DataFrame, None]:
     
     import python_wizard.pw_list as pwl
-    # not tested
+    # medium tested
     """
     Swapp column of df
 
