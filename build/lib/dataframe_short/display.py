@@ -83,7 +83,7 @@ del Union
 del List
 del Literal
 
-del value_counts
-del dtypes
-del count_null
+# del value_counts
+# del dtypes
+# del count_null
 

@@ -5,7 +5,7 @@ setup(
     author_email="noratee5@hotmail.com",
     description="package build on top of pandas and add more convient functionality. Make your code short and easy to read",
     name="dataframe_short",
-    version="0.1.12rc1",
+    version="0.1.12",
     packages=find_packages(),
     license="MIT",
     url = "https://github.com/DearNorathee/dataframe_short",
