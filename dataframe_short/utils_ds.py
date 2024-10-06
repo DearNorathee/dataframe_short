@@ -4,7 +4,7 @@ import pandas as pd
 from typing import *
 import dataframe_short.move_column as mc
 import numpy as np
-import polars as pl
+# import polars as pl
 from pathlib import Path
 
 """
