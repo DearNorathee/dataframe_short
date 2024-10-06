@@ -149,13 +149,45 @@ def dtypes(df: pd.DataFrame, return_as_dict: bool = False) -> Union[pd.DataFrame
         result = result.reset_index(drop=True)
         return result
 
-def value_counts(df:pd.DataFrame,dropna:bool = False) -> pd.DataFrame:
+def value_counts(
+        data: Union[pd.Series, pd.DataFrame],
+        dropna: bool = False,
+        return_type: Type = pd.DataFrame) -> Union[pd.DataFrame, dict]:
     """
-    {'count','count_prop'}
+    Computes the counts and proportions of unique values in a Series or DataFrame.
+
+    Parameters:
+    - data (pd.Series or pd.DataFrame): The data to compute counts for.
+    - dropna (bool): Whether to exclude NA values. Defaults to False.
+    - return_type (Type): The class of the return value, e.g., pd.DataFrame or dict.
+
+    Returns:
+    - pd.DataFrame: If return_type is pd.DataFrame, returns a DataFrame with 'count' and 'count_prop' columns.
+    - dict: If return_type is dict, returns a dictionary of counts.
     """
-    df_count = pd.concat([df.value_counts(dropna= dropna),df.value_counts(normalize=True,dropna=dropna)], axis = 1)
-    df_count.columns = ['count','count_prop']
-    return df_count
+    import pandas as pd
+
+    # Check if data is a Series or DataFrame
+    if isinstance(data, pd.Series):
+        counts = data.value_counts(dropna=dropna)
+        proportions = data.value_counts(normalize=True, dropna=dropna)
+    elif isinstance(data, pd.DataFrame):
+        counts = data.value_counts(dropna=dropna)
+        proportions = data.value_counts(normalize=True, dropna=dropna)
+    else:
+        raise TypeError(f"Input data must be a pandas Series or DataFrame, got {type(data)} instead.")
+
+    # If return_type is dict, return counts as a dictionary
+    if return_type == dict:
+        return counts.to_dict()
+    elif return_type == pd.DataFrame:
+        # Combine counts and proportions into a DataFrame
+        df_count = pd.concat([counts, proportions], axis=1)
+        df_count.columns = ['count', 'count_prop']
+        return df_count
+    else:
+        raise ValueError(f"Unsupported return_type: {return_type}. Expected pd.DataFrame or dict.")
+
 
 def percentile_values(pd_series, percentile_from=0.75, percentile_to=1, increment = 0.01) -> pd.DataFrame:
     import pandas as pd
