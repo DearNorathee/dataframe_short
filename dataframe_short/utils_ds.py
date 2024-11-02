@@ -1079,7 +1079,12 @@ def is_same(df1,df2):
 #     return df
 
 
-def read_excel(filepath, sheet_name=1, header_row=1, start_row=None, end_row=None) -> pd.DataFrame:
+def read_excel(
+        filepath
+        ,sheet_name:int|str =1
+        ,header_row=1
+        ,start_row=None
+        ,end_row=None) -> pd.DataFrame:
     import pandas as pd
     import xlwings as xw
     import numpy as np
