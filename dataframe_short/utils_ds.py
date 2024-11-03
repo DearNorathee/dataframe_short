@@ -150,14 +150,14 @@ def dtypes(df: pd.DataFrame, return_as_dict: bool = False) -> Union[pd.DataFrame
         return result
 
 def value_counts(
-        data: Union[pd.Series, pd.DataFrame],
+        data: Union[pd.Series, pd.DataFrame, np.ndarray],
         dropna: bool = False,
         return_type: Type = pd.DataFrame) -> Union[pd.DataFrame, dict]:
     """
-    Computes the counts and proportions of unique values in a Series or DataFrame.
+    Computes the counts and proportions of unique values in a Series, DataFrame, or numpy array.
 
     Parameters:
-    - data (pd.Series or pd.DataFrame): The data to compute counts for.
+    - data (pd.Series, pd.DataFrame, or np.ndarray): The data to compute counts for.
     - dropna (bool): Whether to exclude NA values. Defaults to False.
     - return_type (Type): The class of the return value, e.g., pd.DataFrame or dict.
 
@@ -165,17 +165,26 @@ def value_counts(
     - pd.DataFrame: If return_type is pd.DataFrame, returns a DataFrame with 'count' and 'count_prop' columns.
     - dict: If return_type is dict, returns a dictionary of counts.
     """
-    import pandas as pd
+    # Added01 => supported 1d numppy array
+    
+    # solo GPT4o - As of Nov, 3, 2024
+
+    # Convert numpy array to pandas Series or DataFrame if needed
+    if isinstance(data, np.ndarray):
+        if data.ndim == 1:
+            data = pd.Series(data)
+        else:
+            raise ValueError("Only 1D is supported.")
 
     # Check if data is a Series or DataFrame
     if isinstance(data, pd.Series):
         counts = data.value_counts(dropna=dropna)
         proportions = data.value_counts(normalize=True, dropna=dropna)
     elif isinstance(data, pd.DataFrame):
-        counts = data.value_counts(dropna=dropna)
-        proportions = data.value_counts(normalize=True, dropna=dropna)
+        counts = data.apply(pd.Series.value_counts, dropna=dropna).fillna(0).sum(axis=1)
+        proportions = data.apply(pd.Series.value_counts, normalize=True, dropna=dropna).fillna(0).sum(axis=1)
     else:
-        raise TypeError(f"Input data must be a pandas Series or DataFrame, got {type(data)} instead.")
+        raise TypeError(f"Input data must be a pandas Series, DataFrame, or numpy array, got {type(data)} instead.")
 
     # If return_type is dict, return counts as a dictionary
     if return_type == dict:
@@ -187,6 +196,7 @@ def value_counts(
         return df_count
     else:
         raise ValueError(f"Unsupported return_type: {return_type}. Expected pd.DataFrame or dict.")
+
 
 
 def percentile_values(pd_series, percentile_from=0.75, percentile_to=1, increment = 0.01) -> pd.DataFrame:
@@ -1228,7 +1238,8 @@ def regex_index(df,regex, column):
     
     return ans_index
 
-def split_into_dict_df(df,regex = None, regex_column = None, index_list = None,add_prefix_index = False):
+def split_into_dict_df(
+    df,regex = None, regex_column = None, index_list = None,add_prefix_index = False):
     # from C:/Users/Heng2020/OneDrive/Python NLP/NLP 07_Sentence Alignment
     # middle tested by read_movie_script
     # if index_list is supplied then ignore regex, regex_column
@@ -1285,7 +1296,7 @@ def split_into_dict_df(df,regex = None, regex_column = None, index_list = None,a
         
     return df_dict
 
-def by_col(df:Union[pd.DataFrame], cols:Union[List,int,str]):
+def by_col(df:pd.DataFrame, cols:Union[List,int,str]):
 
     """
     slice the dataFrame refer to by str or int
