@@ -35,6 +35,35 @@ def read_data(data_path:Union[Path,str]) -> Union[pd.DataFrame] :
     return df
 
 
+def write_data(
+        df: pd.DataFrame
+        ,data_path: Union[Path, str]
+        ,index:bool = False
+        ) -> None:
+    """
+    Writes a DataFrame to a specified file format (CSV, Parquet, or Excel) based on the file extension.
+    
+    Parameters:
+    - df (pd.DataFrame): The DataFrame to write.
+    - data_path (Union[Path, str]): The path to save the file. The file extension determines the format.
+    
+    Raises:
+    - Exception: If the file extension is not supported.
+    """
+    # not tested
+    data_path_str = str(data_path)
+    extension = data_path_str.split(".")[-1]
+    
+    if extension in ["csv"]:
+        df.to_csv(data_path_str, index=index)
+    elif extension in ["parquet"]:
+        df.to_parquet(data_path_str)
+    elif extension in ["xlsx", "xlsm", "xlsb"]:
+        df.to_excel(data_path_str, index=False)
+    else:
+        raise Exception(f"{extension} format is not supported.")
+
+
 def group_top_n_1_col(series: pd.Series, top_n: int = 15) -> pd.Series:
     import pandas as pd
     """
@@ -102,10 +131,6 @@ def group_top_n_1_col(series: pd.Series, top_n: int = 15) -> pd.Series:
     return grouped_series
 
 
-
-
-
-
 def dtypes(df: pd.DataFrame, return_as_dict: bool = False) -> Union[pd.DataFrame, Dict[str, str]]:
     # plan to have no test case
 
@@ -166,7 +191,7 @@ def value_counts(
     - dict: If return_type is dict, returns a dictionary of counts.
     """
     # Added01 => supported 1d numppy array
-    
+
     # solo GPT4o - As of Nov, 3, 2024
 
     # Convert numpy array to pandas Series or DataFrame if needed
