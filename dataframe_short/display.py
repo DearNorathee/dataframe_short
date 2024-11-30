@@ -25,6 +25,7 @@ def return_display_html(df:Union[pd.DataFrame], display_height=300):
         """
         # display(HTML(html))
     return html
+
 def display_nice_df(df:Union[pd.DataFrame], display_height=300):
 
     """
@@ -48,9 +49,16 @@ def display_nice_df(df:Union[pd.DataFrame], display_height=300):
         """
         display(HTML(html))
 
-def display_value_counts(df:pd.DataFrame,dropna:bool = False, display_height=300):
+def display_value_counts(
+        df:pd.DataFrame
+        ,dropna:bool = False
+        ,display_height=300
+        ,sort_by_index:Literal["auto",True,False] = "auto"
+        ):
+    
+    
     from dataframe_short.utils_ds import value_counts
-    count_of_values = value_counts(df,dropna)
+    count_of_values = value_counts(df,dropna, sort_by_index=sort_by_index)
 
     # display_nice_df(count_of_values,display_height)
 

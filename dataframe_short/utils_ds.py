@@ -131,70 +131,189 @@ def group_top_n_1_col(series: pd.Series, top_n: int = 15) -> pd.Series:
     return grouped_series
 
 
-def dtypes(df: pd.DataFrame, return_as_dict: bool = False) -> Union[pd.DataFrame, Dict[str, str]]:
-    # plan to have no test case
+# def dtypes(df: pd.DataFrame, return_as_dict: bool = False) -> Union[pd.DataFrame, Dict[str, str]]:
+#     # plan to have no test case
 
+#     """
+#     Get the data types of columns in a DataFrame.
+
+#     Parameters
+#     ----------
+#     df : pandas.DataFrame
+#         The input DataFrame.
+#     return_as_dict : bool, default False
+#         If True, return the result as a dictionary.
+
+#     Returns
+#     -------
+#     pandas.DataFrame or dict
+#         A DataFrame with columns ['column', 'dtype'] if return_as_dict is False.
+#         A dictionary with column names as keys and dtypes as values if return_as_dict is True.
+
+#     Examples
+#     --------
+#     >>> import pandas as pd
+#     >>> df = pd.DataFrame({'A': [1, 2, 3], 'B': ['a', 'b', 'c'], 'C': [1.1, 2.2, 3.3]})
+#     >>> dtype(df)
+#        column   dtype
+#     0      A    int64
+#     1      B   object
+#     2      C  float64
+
+#     >>> dtype(df, return_as_dict=True)
+#     {'A': 'int64', 'B': 'object', 'C': 'float64'}
+#     """
+#     result = pd.DataFrame({
+#         'column': df.columns,
+#         'dtype': df.dtypes.astype(str)
+#     })
+    
+#     if return_as_dict:
+#         return dict(zip(result['column'], result['dtype']))
+#     else:
+#         result = result.reset_index(drop=True)
+#         return result
+
+
+def dtypes(data: Union[pd.DataFrame, pd.Series, np.ndarray], return_as_dict: bool = False) -> Union[pd.DataFrame, Dict[str, str]]:
     """
-    Get the data types of columns in a DataFrame.
+    Get the data types of columns or elements in a DataFrame, Series, or numpy array.
 
     Parameters
     ----------
-    df : pandas.DataFrame
-        The input DataFrame.
+    data : pandas.DataFrame, pandas.Series, or numpy.ndarray
+        The input data structure.
     return_as_dict : bool, default False
         If True, return the result as a dictionary.
 
     Returns
     -------
     pandas.DataFrame or dict
-        A DataFrame with columns ['column', 'dtype'] if return_as_dict is False.
-        A dictionary with column names as keys and dtypes as values if return_as_dict is True.
+        - If input is a DataFrame or 2D array:
+          A DataFrame with columns ['column', 'dtype'] if return_as_dict is False.
+          A dictionary with column names or array indices as keys and dtypes as values if return_as_dict is True.
+        - If input is a Series or 1D array:
+          A DataFrame with columns ['index', 'dtype'] if return_as_dict is False.
+          A dictionary with the Series name or array index as key and dtype as value if return_as_dict is True.
 
     Examples
     --------
+    For DataFrame:
     >>> import pandas as pd
     >>> df = pd.DataFrame({'A': [1, 2, 3], 'B': ['a', 'b', 'c'], 'C': [1.1, 2.2, 3.3]})
-    >>> dtype(df)
+    >>> dtypes(df)
        column   dtype
     0      A    int64
     1      B   object
     2      C  float64
 
-    >>> dtype(df, return_as_dict=True)
-    {'A': 'int64', 'B': 'object', 'C': 'float64'}
+    For Series:
+    >>> s = pd.Series([1, 2, 3], name='numbers')
+    >>> dtypes(s)
+       index   dtype
+    0      0    int64
+    1      1    int64
+    2      2    int64
+
+    For numpy array:
+    >>> arr = np.array([[1, 2], [3, 4]], dtype=int)
+    >>> dtypes(arr)
+       column   dtype
+    0        0    int64
+    1        1    int64
     """
-    result = pd.DataFrame({
-        'column': df.columns,
-        'dtype': df.dtypes.astype(str)
-    })
-    
-    if return_as_dict:
-        return dict(zip(result['column'], result['dtype']))
+    # v02 => support numpy and pd.Series
+    if isinstance(data, pd.DataFrame):
+        result = pd.DataFrame({
+            'column': data.columns,
+            'dtype': data.dtypes.astype(str)
+        })
+    elif isinstance(data, pd.Series):
+        result = pd.DataFrame({
+            'dtype': [data.dtype]
+        })
+    elif isinstance(data, np.ndarray):
+        # np.array would only have 1 type
+        result = pd.DataFrame({
+            'dtype': [data[:, 0].dtype]
+        })
+
     else:
-        result = result.reset_index(drop=True)
-        return result
+        raise TypeError("Input data must be a pandas DataFrame, Series, or numpy array.")
+
+    if return_as_dict:
+        if 'column' in result:
+            return dict(zip(result['column'], result['dtype']))
+        else:
+            return dict(zip(result['index'], result['dtype']))
+    else:
+        return result.reset_index(drop=True)
+
 
 def value_counts(
         data: Union[pd.Series, pd.DataFrame, np.ndarray],
         dropna: bool = False,
-        return_type: Type = pd.DataFrame) -> Union[pd.DataFrame, dict]:
-    """
-    Computes the counts and proportions of unique values in a Series, DataFrame, or numpy array.
+        return_type: Type = pd.DataFrame,
+        sort_by_index:Literal[True,False,"auto"] = "auto",
 
-    Parameters:
-    - data (pd.Series, pd.DataFrame, or np.ndarray): The data to compute counts for.
-    - dropna (bool): Whether to exclude NA values. Defaults to False.
-    - return_type (Type): The class of the return value, e.g., pd.DataFrame or dict.
-
-    Returns:
-    - pd.DataFrame: If return_type is pd.DataFrame, returns a DataFrame with 'count' and 'count_prop' columns.
-    - dict: If return_type is dict, returns a dictionary of counts.
+        ) -> Union[pd.DataFrame, dict]:
     """
+    Calculate the frequency and proportion of unique values in data.
+
+    This function computes the counts and proportions of unique values for a pandas Series, 
+    DataFrame, or a 1D numpy array. Results can be returned as a pandas DataFrame or a dictionary.
+
+    Parameters
+    ----------
+    data : pd.Series, pd.DataFrame, or np.ndarray
+        The data for which unique value counts and proportions are calculated.
+        For numpy arrays, only 1D arrays are supported.
+
+    dropna : bool, default False
+        If True, excludes NA/null values from the calculations.
+
+    return_type : Type, default pd.DataFrame
+        The type of the returned result:
+        - `pd.DataFrame`: A DataFrame with columns `count` (frequency) and `count_prop` (proportion).
+        - `dict`: A dictionary where keys are unique values and values are their frequencies.
+
+    sort_by_index : Literal[True, False, "auto"], default "auto"
+        Determines whether to sort the output by index:
+        - `True`: Always sort by index.
+        - `False`: Do not sort by index.
+        - `"auto"`: Sort numerically if the index is numeric, otherwise keep the original order.
+
+    Returns
+    -------
+    Union[pd.DataFrame, dict]
+        - If `return_type` is `pd.DataFrame`, returns a DataFrame with two columns:
+            - `count`: Frequencies of unique values.
+            - `count_prop`: Proportions of unique values.
+        - If `return_type` is `dict`, returns a dictionary with unique values as keys and their 
+        frequencies as values.
+
+    Raises
+    ------
+    ValueError
+        - If the input is a numpy array with more than one dimension.
+        - If an unsupported `return_type` is specified.
+
+    TypeError
+        If `data` is not a pandas Series, DataFrame, or a 1D numpy array.
+
+    Notes
+    -----
+    - For a pandas DataFrame, counts and proportions are computed across all columns and aggregated 
+    by unique values.
+    - When `sort_by_index="auto"`, numeric indices are sorted, while non-numeric indices retain their order.
+    """
+
     # Added01 => supported 1d numppy array
 
     # solo GPT4o - As of Nov, 3, 2024
-
     # Convert numpy array to pandas Series or DataFrame if needed
+    from pandas.api.types import is_numeric_dtype
+
     if isinstance(data, np.ndarray):
         if data.ndim == 1:
             data = pd.Series(data)
@@ -218,6 +337,14 @@ def value_counts(
         # Combine counts and proportions into a DataFrame
         df_count = pd.concat([counts, proportions], axis=1)
         df_count.columns = ['count', 'count_prop']
+
+        if sort_by_index in ["auto"]:
+            is_index_numeric = is_numeric_dtype(df_count.index.dtype)
+            if is_index_numeric:
+                df_count = df_count.sort_index()
+        elif sort_by_index is True:
+            df_count = df_count.sort_index()
+
         return df_count
     else:
         raise ValueError(f"Unsupported return_type: {return_type}. Expected pd.DataFrame or dict.")
