@@ -354,7 +354,7 @@ def value_counts(
 def percentile_values(pd_series, percentile_from=0.75, percentile_to=1, increment = 0.01) -> pd.DataFrame:
     import pandas as pd
     import numpy as np
-    # medium tested via pd. 1.1.3
+    
     """
     Calculate percentiles for a given Pandas Series.
 
@@ -366,6 +366,7 @@ def percentile_values(pd_series, percentile_from=0.75, percentile_to=1, incremen
     Returns:
         pd.DataFrame: A DataFrame with columns 'percentile' and 'value'.
     """
+    # medium tested via pd. 1.1.3
     percentile_list = np.arange(percentile_from,percentile_to + increment ,increment)      
     # Calculate the specified percentiles
     percentiles = pd_series.quantile(percentile_list)
@@ -1117,11 +1118,6 @@ def duplicate_col(df):
 
 # -------------------------------------------------- imported from work Mar 17, 2024 ------------------------------------------------------
 
-
-
-
-
-
 def value_index(df, value):
     """
     Searches for a specific value in the DataFrame using a vectorized approach
@@ -1155,26 +1151,24 @@ def value_index(df, value):
 
     return out_df
 
-# def count_null(df):
-#     # Get the number of null values in each column
-#     null_counts = df.isnull().sum()
-#     # Get the total number of rows in the DataFrame
-#     total_rows = df.shape[0]
-#     # Compute the proportion of null values in each column
-#     null_proportions = null_counts / total_rows
-#     # Create a dictionary mapping column names to null proportions
-#     result = dict(zip(df.columns, null_proportions))
-#     return result
 
-def count_null(df, return_as_dict: bool = False):
+def count_null(data, return_type: Union[str,Type] = pd.DataFrame):
     # Calculate null counts and proportions
-    null_counts = df.isnull().sum()
-    null_proportions = null_counts / len(df)
+    null_counts = data.isnull().sum()
+    null_proportions = null_counts / len(data)
     
-    if return_as_dict:
+    # v02 => support pd.Series
+    # low tested
+
+    if isinstance(data,pd.Series):
+        data_in = pd.DataFrame(data, columns = [data.name])
+        null_counts = data_in.isnull().sum()
+        null_proportions = null_counts / len(data_in)
+
+    if return_type in ["dict",dict]:
         # Return as dictionary if specified
         return dict(null_proportions)
-    else:
+    elif return_type in [pd.DataFrame]:
         # Create a DataFrame with the required columns
         result_df = pd.DataFrame({
             'column': null_counts.index,
