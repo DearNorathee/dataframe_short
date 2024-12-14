@@ -30,7 +30,7 @@ def read_data(data_path:Union[Path,str]) -> Union[pd.DataFrame] :
     elif extension in ["xlsx","xlsm","xlsb"]:
         df = pd.read_excel(data_path_str)
     else:
-        raise Exception(f"{extension} not supported ")
+        raise ValueError(f"{extension} not supported ")
         
     return df
 
@@ -61,7 +61,7 @@ def write_data(
     elif extension in ["xlsx", "xlsm", "xlsb"]:
         df.to_excel(data_path_str, index=False)
     else:
-        raise Exception(f"{extension} format is not supported.")
+        raise ValueError(f"{extension} format is not supported.")
 
 
 def group_top_n_1_col(series: pd.Series, top_n: int = 15) -> pd.Series:
@@ -532,7 +532,7 @@ def combine_files_to_df(
 
 
 def xlookup(df_main, df_lookup, lookup_col, key_col, return_col, inplace=True):
-    # v02 => raise Exception
+    # v02 => raise ValueError
     """
     Perform an XLOOKUP-like operation on DataFrames.
 
@@ -563,7 +563,7 @@ def xlookup(df_main, df_lookup, lookup_col, key_col, return_col, inplace=True):
     if inplace:
         for col in return_col:
             if df_main.shape[0] != merged_df.shape[0]:
-                raise Exception(f"Please drop duplicate in df_main first. The original n_rows of df_main is {df_main.shape[0]}, but became {merged_df.shape[0]} after merging ")
+                raise ValueError(f"Please drop duplicate in df_main first. The original n_rows of df_main is {df_main.shape[0]}, but became {merged_df.shape[0]} after merging ")
             else:
                 df_main[col] = merged_df[col]
         return df_main
