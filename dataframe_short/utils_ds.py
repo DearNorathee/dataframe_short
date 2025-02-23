@@ -13,6 +13,55 @@ Created on Thu Jul 13 10:53:08 2023
 @author: Heng2020
 """
 
+
+def unique_score(df: pd.DataFrame, return_type: Type = pd.DataFrame) -> Union[pd.DataFrame, Dict[str, float]]:
+    """
+    Calculate the unique score for each column in a DataFrame.
+
+    Unique score is defined as:
+        unique_score = df[col].nunique() / df.shape[0]
+    
+    A score of 1.0 indicates a potential ID column, whereas lower values indicate categorical columns.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        The input DataFrame.
+    return_type : Type, default pd.DataFrame
+        If return_type is pd.DataFrame, returns a DataFrame with 'column' and 'unique_score'.
+        If return_type is dict, returns a dictionary with column names as keys and unique scores as values.
+
+    Returns
+    -------
+    Union[pd.DataFrame, Dict[str, float]]
+        - If return_type is pd.DataFrame, returns a DataFrame with columns ['column', 'unique_score'].
+        - If return_type is dict, returns a dictionary with column names as keys and unique scores as values.
+
+    Examples
+    --------
+    >>> import pandas as pd
+    >>> df = pd.DataFrame({'A': [1, 2, 3, 4], 'B': ['x', 'x', 'y', 'y'], 'C': [1, 2, 2, 2]})
+    >>> unique_score(df)
+       column  unique_score
+    0      A          1.00
+    1      B          0.50
+    2      C          0.50
+
+    >>> unique_score(df, return_type=dict)
+    {'A': 1.0, 'B': 0.5, 'C': 0.5}
+    """
+
+    # Compute unique score for each column
+    unique_scores = {col: df[col].nunique() / df.shape[0] for col in df.columns}
+
+    if return_type == dict:
+        return unique_scores
+    elif return_type == pd.DataFrame:
+        return pd.DataFrame({'column': list(unique_scores.keys()), 'unique_score': list(unique_scores.values())})
+    else:
+        raise ValueError("Unsupported return_type. Use pd.DataFrame or dict.")
+
+
 def read_data(data_path:Union[Path,str]) -> Union[pd.DataFrame] :
     # medium tested
     """
@@ -129,51 +178,6 @@ def group_top_n_1_col(series: pd.Series, top_n: int = 15) -> pd.Series:
     grouped_series = series.where(is_top_value, f'After top {top_n}')
     
     return grouped_series
-
-
-# def dtypes(df: pd.DataFrame, return_as_dict: bool = False) -> Union[pd.DataFrame, Dict[str, str]]:
-#     # plan to have no test case
-
-#     """
-#     Get the data types of columns in a DataFrame.
-
-#     Parameters
-#     ----------
-#     df : pandas.DataFrame
-#         The input DataFrame.
-#     return_as_dict : bool, default False
-#         If True, return the result as a dictionary.
-
-#     Returns
-#     -------
-#     pandas.DataFrame or dict
-#         A DataFrame with columns ['column', 'dtype'] if return_as_dict is False.
-#         A dictionary with column names as keys and dtypes as values if return_as_dict is True.
-
-#     Examples
-#     --------
-#     >>> import pandas as pd
-#     >>> df = pd.DataFrame({'A': [1, 2, 3], 'B': ['a', 'b', 'c'], 'C': [1.1, 2.2, 3.3]})
-#     >>> dtype(df)
-#        column   dtype
-#     0      A    int64
-#     1      B   object
-#     2      C  float64
-
-#     >>> dtype(df, return_as_dict=True)
-#     {'A': 'int64', 'B': 'object', 'C': 'float64'}
-#     """
-#     result = pd.DataFrame({
-#         'column': df.columns,
-#         'dtype': df.dtypes.astype(str)
-#     })
-    
-#     if return_as_dict:
-#         return dict(zip(result['column'], result['dtype']))
-#     else:
-#         result = result.reset_index(drop=True)
-#         return result
-
 
 def dtypes(
     data: Union[pd.DataFrame, pd.Series, np.ndarray]
@@ -381,20 +385,64 @@ def percentile_values(pd_series, percentile_from=0.75, percentile_to=1, incremen
 
     return result_df
 
-def constrict_levels(df, allowed_levels):
+
+def constrict_levels(df: pd.DataFrame, allowed_levels: Dict[str, Dict[str, Any]]) -> None:
+    """
+    Restrict levels in categorical columns based on allowed levels.
+    
+    This function modifies the input DataFrame in place. It ensures that only 
+    the allowed levels exist in each specified column. If an invalid value is 
+    found, it is either removed (if 'replaced_by' is None) or replaced with 
+    a specified value.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        The DataFrame to modify.
+    allowed_levels : Dict[str, Dict[str, Any]]
+        A dictionary mapping column names to allowed levels.
+        Each column should have a dictionary with:
+        - 'levels' (list): A list of valid values for that column.
+        - 'replaced_by' (Any, optional): If provided, invalid values will be replaced
+          by this value; otherwise, rows with invalid values will be removed.
+
+    Returns
+    -------
+    None
+        This function modifies the input DataFrame in place.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame({'A': ['x', 'y', 'z'], 'B': ['m', 'n', 'o']})
+    >>> allowed_levels = {
+    ...     'A': {'levels': ['x', 'y'], 'replaced_by': None},
+    ...     'B': {'levels': ['m', 'n'], 'replaced_by': 'unknown'}
+    ... }
+    >>> constrict_levels(df, allowed_levels)
+    Removing rows for column A with invalid levels:
+    Row Index: 2, Invalid Level: z
+    >>> print(df)
+       A      B
+    0  x      m
+    1  y      n
+    2  NaN  unknown
+    """
     # from Claude
     for col, levels_dict in allowed_levels.items():
         level_set = set(levels_dict['levels'])
         replaced_by = levels_dict.get('replaced_by')
-        
+
         if replaced_by is None:
+            # Identify rows where values are not in the allowed set
             invalid_rows = df.loc[~df[col].isin(level_set)]
             if not invalid_rows.empty:
                 print(f"Removing rows for column {col} with invalid levels:")
                 for idx, row in invalid_rows.iterrows():
                     print(f"Row Index: {idx}, Invalid Level: {row[col]}")
+                # Drop invalid rows from the DataFrame
                 df.drop(invalid_rows.index, inplace=True)
         else:
+            # Replace invalid values with 'replaced_by' value
             df.loc[~df[col].isin(level_set), col] = replaced_by
 
 
