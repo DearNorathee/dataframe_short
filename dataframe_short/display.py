@@ -68,7 +68,7 @@ def display_value_counts(
 
 def display_dtype(df:pd.DataFrame, display_height=300):
     from dataframe_short.utils_ds import dtypes
-    dtype_df = dtypes(df,return_as_dict=False)
+    dtype_df = dtypes(df,return_type=pd.DataFrame)
 
     # display_nice_df(count_of_values,display_height)
 
@@ -78,7 +78,7 @@ def display_dtype(df:pd.DataFrame, display_height=300):
 
 def display_null(df:pd.DataFrame, display_height=300):
     from dataframe_short.utils_ds import count_null
-    null_df = count_null(df,return_as_dict=False)
+    null_df = count_null(df,return_type=pd.DataFrame)
 
     # display_nice_df(count_of_values,display_height)
 

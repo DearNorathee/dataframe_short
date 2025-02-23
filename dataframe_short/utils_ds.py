@@ -175,7 +175,9 @@ def group_top_n_1_col(series: pd.Series, top_n: int = 15) -> pd.Series:
 #         return result
 
 
-def dtypes(data: Union[pd.DataFrame, pd.Series, np.ndarray], return_as_dict: bool = False) -> Union[pd.DataFrame, Dict[str, str]]:
+def dtypes(
+    data: Union[pd.DataFrame, pd.Series, np.ndarray]
+    ,return_type: Type = pd.DataFrame) -> Union[pd.DataFrame, Dict[str, str]]:
     """
     Get the data types of columns or elements in a DataFrame, Series, or numpy array.
 
@@ -241,12 +243,12 @@ def dtypes(data: Union[pd.DataFrame, pd.Series, np.ndarray], return_as_dict: boo
     else:
         raise TypeError("Input data must be a pandas DataFrame, Series, or numpy array.")
 
-    if return_as_dict:
+    if return_type == dict:
         if 'column' in result:
             return dict(zip(result['column'], result['dtype']))
         else:
             return dict(zip(result['index'], result['dtype']))
-    else:
+    elif return_type == pd.DataFrame:
         return result.reset_index(drop=True)
 
 
