@@ -2,6 +2,24 @@ from dataframe_short.utils_ds import *
 from typing import List, Dict, Literal, Union, Any
 # ########################################## imported from work Mar 17, 2024 #######################################################################
 
+def convert_to_numpy_type(df:pd.DataFrame):
+    """
+    there's an issue of converting pyarrow type to normal type so I need to create this function 
+    """
+    # medium tested
+    from tqdm import tqdm
+    for col in tqdm(df.columns):
+        curr_dtype = df[col].dtype
+        try:
+            if curr_dtype in ["string"]:
+                df[col] = df[col].values.astype(str)
+            elif curr_dtype in ["int64[pyarrow]","Int64","int32[pyarrow]","int16[pyarrow]","int8[pyarrow]","Int32","Int16","Int8"]:
+                df[col] = df[col].values.astype(int)
+            elif curr_dtype in ["double[pyarrow]","Float64"]:
+                df[col] = df[col].values.astype(float)
+        except:
+            print(f"There's error at column: '{col}'")
+
 
 def to_list(df_sr_list:Union[pd.DataFrame,pd.Series,List[Any]]):
     import pandas as pd

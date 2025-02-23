@@ -4,7 +4,7 @@ import pandas as pd
 from typing import *
 import dataframe_short.move_column as mc
 import numpy as np
-import polars as pl
+# import polars as pl
 from pathlib import Path
 
 """
@@ -12,6 +12,55 @@ Created on Thu Jul 13 10:53:08 2023
 
 @author: Heng2020
 """
+
+
+def unique_score(df: pd.DataFrame, return_type: Type = pd.DataFrame) -> Union[pd.DataFrame, Dict[str, float]]:
+    """
+    Calculate the unique score for each column in a DataFrame.
+
+    Unique score is defined as:
+        unique_score = df[col].nunique() / df.shape[0]
+    
+    A score of 1.0 indicates a potential ID column, whereas lower values indicate categorical columns.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        The input DataFrame.
+    return_type : Type, default pd.DataFrame
+        If return_type is pd.DataFrame, returns a DataFrame with 'column' and 'unique_score'.
+        If return_type is dict, returns a dictionary with column names as keys and unique scores as values.
+
+    Returns
+    -------
+    Union[pd.DataFrame, Dict[str, float]]
+        - If return_type is pd.DataFrame, returns a DataFrame with columns ['column', 'unique_score'].
+        - If return_type is dict, returns a dictionary with column names as keys and unique scores as values.
+
+    Examples
+    --------
+    >>> import pandas as pd
+    >>> df = pd.DataFrame({'A': [1, 2, 3, 4], 'B': ['x', 'x', 'y', 'y'], 'C': [1, 2, 2, 2]})
+    >>> unique_score(df)
+       column  unique_score
+    0      A          1.00
+    1      B          0.50
+    2      C          0.50
+
+    >>> unique_score(df, return_type=dict)
+    {'A': 1.0, 'B': 0.5, 'C': 0.5}
+    """
+
+    # Compute unique score for each column
+    unique_scores = {col: df[col].nunique() / df.shape[0] for col in df.columns}
+
+    if return_type == dict:
+        return unique_scores
+    elif return_type == pd.DataFrame:
+        return pd.DataFrame({'column': list(unique_scores.keys()), 'unique_score': list(unique_scores.values())})
+    else:
+        raise ValueError("Unsupported return_type. Use pd.DataFrame or dict.")
+
 
 def read_data(data_path:Union[Path,str]) -> Union[pd.DataFrame] :
     # medium tested
@@ -30,9 +79,38 @@ def read_data(data_path:Union[Path,str]) -> Union[pd.DataFrame] :
     elif extension in ["xlsx","xlsm","xlsb"]:
         df = pd.read_excel(data_path_str)
     else:
-        raise Exception(f"{extension} not supported ")
+        raise ValueError(f"{extension} not supported ")
         
     return df
+
+
+def write_data(
+        df: pd.DataFrame
+        ,data_path: Union[Path, str]
+        ,index:bool = False
+        ) -> None:
+    """
+    Writes a DataFrame to a specified file format (CSV, Parquet, or Excel) based on the file extension.
+    
+    Parameters:
+    - df (pd.DataFrame): The DataFrame to write.
+    - data_path (Union[Path, str]): The path to save the file. The file extension determines the format.
+    
+    Raises:
+    - Exception: If the file extension is not supported.
+    """
+    # not tested
+    data_path_str = str(data_path)
+    extension = data_path_str.split(".")[-1]
+    
+    if extension in ["csv"]:
+        df.to_csv(data_path_str, index=index)
+    elif extension in ["parquet"]:
+        df.to_parquet(data_path_str)
+    elif extension in ["xlsx", "xlsm", "xlsb"]:
+        df.to_excel(data_path_str, index=False)
+    else:
+        raise ValueError(f"{extension} format is not supported.")
 
 
 def group_top_n_1_col(series: pd.Series, top_n: int = 15) -> pd.Series:
@@ -101,66 +179,188 @@ def group_top_n_1_col(series: pd.Series, top_n: int = 15) -> pd.Series:
     
     return grouped_series
 
-
-
-
-
-
-def dtypes(df: pd.DataFrame, return_as_dict: bool = False) -> Union[pd.DataFrame, Dict[str, str]]:
-    # plan to have no test case
-
+def dtypes(
+    data: Union[pd.DataFrame, pd.Series, np.ndarray]
+    ,return_type: Type = pd.DataFrame) -> Union[pd.DataFrame, Dict[str, str]]:
     """
-    Get the data types of columns in a DataFrame.
+    Get the data types of columns or elements in a DataFrame, Series, or numpy array.
 
     Parameters
     ----------
-    df : pandas.DataFrame
-        The input DataFrame.
+    data : pandas.DataFrame, pandas.Series, or numpy.ndarray
+        The input data structure.
     return_as_dict : bool, default False
         If True, return the result as a dictionary.
 
     Returns
     -------
     pandas.DataFrame or dict
-        A DataFrame with columns ['column', 'dtype'] if return_as_dict is False.
-        A dictionary with column names as keys and dtypes as values if return_as_dict is True.
+        - If input is a DataFrame or 2D array:
+          A DataFrame with columns ['column', 'dtype'] if return_as_dict is False.
+          A dictionary with column names or array indices as keys and dtypes as values if return_as_dict is True.
+        - If input is a Series or 1D array:
+          A DataFrame with columns ['index', 'dtype'] if return_as_dict is False.
+          A dictionary with the Series name or array index as key and dtype as value if return_as_dict is True.
 
     Examples
     --------
+    For DataFrame:
     >>> import pandas as pd
     >>> df = pd.DataFrame({'A': [1, 2, 3], 'B': ['a', 'b', 'c'], 'C': [1.1, 2.2, 3.3]})
-    >>> dtype(df)
+    >>> dtypes(df)
        column   dtype
     0      A    int64
     1      B   object
     2      C  float64
 
-    >>> dtype(df, return_as_dict=True)
-    {'A': 'int64', 'B': 'object', 'C': 'float64'}
-    """
-    result = pd.DataFrame({
-        'column': df.columns,
-        'dtype': df.dtypes.astype(str)
-    })
-    
-    if return_as_dict:
-        return dict(zip(result['column'], result['dtype']))
-    else:
-        result = result.reset_index(drop=True)
-        return result
+    For Series:
+    >>> s = pd.Series([1, 2, 3], name='numbers')
+    >>> dtypes(s)
+       index   dtype
+    0      0    int64
+    1      1    int64
+    2      2    int64
 
-def value_counts(df:pd.DataFrame,dropna:bool = False) -> pd.DataFrame:
+    For numpy array:
+    >>> arr = np.array([[1, 2], [3, 4]], dtype=int)
+    >>> dtypes(arr)
+       column   dtype
+    0        0    int64
+    1        1    int64
     """
-    {'count','count_prop'}
+    # v02 => support numpy and pd.Series
+    if isinstance(data, pd.DataFrame):
+        result = pd.DataFrame({
+            'column': data.columns,
+            'dtype': data.dtypes.astype(str)
+        })
+    elif isinstance(data, pd.Series):
+        result = pd.DataFrame({
+            'dtype': [data.dtype]
+        })
+    elif isinstance(data, np.ndarray):
+        # np.array would only have 1 type
+        result = pd.DataFrame({
+            'dtype': [data[:, 0].dtype]
+        })
+
+    else:
+        raise TypeError("Input data must be a pandas DataFrame, Series, or numpy array.")
+
+    if return_type == dict:
+        if 'column' in result:
+            return dict(zip(result['column'], result['dtype']))
+        else:
+            return dict(zip(result['index'], result['dtype']))
+    elif return_type == pd.DataFrame:
+        return result.reset_index(drop=True)
+
+
+def value_counts(
+        data: Union[pd.Series, pd.DataFrame, np.ndarray],
+        dropna: bool = False,
+        return_type: Type = pd.DataFrame,
+        sort_by_index:Literal[True,False,"auto"] = "auto",
+
+        ) -> Union[pd.DataFrame, dict]:
     """
-    df_count = pd.concat([df.value_counts(dropna= dropna),df.value_counts(normalize=True,dropna=dropna)], axis = 1)
-    df_count.columns = ['count','count_prop']
-    return df_count
+    Calculate the frequency and proportion of unique values in data.
+
+    This function computes the counts and proportions of unique values for a pandas Series, 
+    DataFrame, or a 1D numpy array. Results can be returned as a pandas DataFrame or a dictionary.
+
+    Parameters
+    ----------
+    data : pd.Series, pd.DataFrame, or np.ndarray
+        The data for which unique value counts and proportions are calculated.
+        For numpy arrays, only 1D arrays are supported.
+
+    dropna : bool, default False
+        If True, excludes NA/null values from the calculations.
+
+    return_type : Type, default pd.DataFrame
+        The type of the returned result:
+        - `pd.DataFrame`: A DataFrame with columns `count` (frequency) and `count_prop` (proportion).
+        - `dict`: A dictionary where keys are unique values and values are their frequencies.
+
+    sort_by_index : Literal[True, False, "auto"], default "auto"
+        Determines whether to sort the output by index:
+        - `True`: Always sort by index.
+        - `False`: Do not sort by index.
+        - `"auto"`: Sort numerically if the index is numeric, otherwise keep the original order.
+
+    Returns
+    -------
+    Union[pd.DataFrame, dict]
+        - If `return_type` is `pd.DataFrame`, returns a DataFrame with two columns:
+            - `count`: Frequencies of unique values.
+            - `count_prop`: Proportions of unique values.
+        - If `return_type` is `dict`, returns a dictionary with unique values as keys and their 
+        frequencies as values.
+
+    Raises
+    ------
+    ValueError
+        - If the input is a numpy array with more than one dimension.
+        - If an unsupported `return_type` is specified.
+
+    TypeError
+        If `data` is not a pandas Series, DataFrame, or a 1D numpy array.
+
+    Notes
+    -----
+    - For a pandas DataFrame, counts and proportions are computed across all columns and aggregated 
+    by unique values.
+    - When `sort_by_index="auto"`, numeric indices are sorted, while non-numeric indices retain their order.
+    """
+
+    # Added01 => supported 1d numppy array
+
+    # solo GPT4o - As of Nov, 3, 2024
+    # Convert numpy array to pandas Series or DataFrame if needed
+    from pandas.api.types import is_numeric_dtype
+
+    if isinstance(data, np.ndarray):
+        if data.ndim == 1:
+            data = pd.Series(data)
+        else:
+            raise ValueError("Only 1D is supported.")
+
+    # Check if data is a Series or DataFrame
+    if isinstance(data, pd.Series):
+        counts = data.value_counts(dropna=dropna)
+        proportions = data.value_counts(normalize=True, dropna=dropna)
+    elif isinstance(data, pd.DataFrame):
+        counts = data.apply(pd.Series.value_counts, dropna=dropna).fillna(0).sum(axis=1)
+        proportions = data.apply(pd.Series.value_counts, normalize=True, dropna=dropna).fillna(0).sum(axis=1)
+    else:
+        raise TypeError(f"Input data must be a pandas Series, DataFrame, or numpy array, got {type(data)} instead.")
+
+    # If return_type is dict, return counts as a dictionary
+    if return_type == dict:
+        return counts.to_dict()
+    elif return_type == pd.DataFrame:
+        # Combine counts and proportions into a DataFrame
+        df_count = pd.concat([counts, proportions], axis=1)
+        df_count.columns = ['count', 'count_prop']
+
+        if sort_by_index in ["auto"]:
+            is_index_numeric = is_numeric_dtype(df_count.index.dtype)
+            if is_index_numeric:
+                df_count = df_count.sort_index()
+        elif sort_by_index is True:
+            df_count = df_count.sort_index()
+
+        return df_count
+    else:
+        raise ValueError(f"Unsupported return_type: {return_type}. Expected pd.DataFrame or dict.")
+
+
 
 def percentile_values(pd_series, percentile_from=0.75, percentile_to=1, increment = 0.01) -> pd.DataFrame:
     import pandas as pd
     import numpy as np
-    # medium tested via pd. 1.1.3
+    
     """
     Calculate percentiles for a given Pandas Series.
 
@@ -172,6 +372,7 @@ def percentile_values(pd_series, percentile_from=0.75, percentile_to=1, incremen
     Returns:
         pd.DataFrame: A DataFrame with columns 'percentile' and 'value'.
     """
+    # medium tested via pd. 1.1.3
     percentile_list = np.arange(percentile_from,percentile_to + increment ,increment)      
     # Calculate the specified percentiles
     percentiles = pd_series.quantile(percentile_list)
@@ -184,20 +385,64 @@ def percentile_values(pd_series, percentile_from=0.75, percentile_to=1, incremen
 
     return result_df
 
-def constrict_levels(df, allowed_levels):
+
+def constrict_levels(df: pd.DataFrame, allowed_levels: Dict[str, Dict[str, Any]]) -> None:
+    """
+    Restrict levels in categorical columns based on allowed levels.
+    
+    This function modifies the input DataFrame in place. It ensures that only 
+    the allowed levels exist in each specified column. If an invalid value is 
+    found, it is either removed (if 'replaced_by' is None) or replaced with 
+    a specified value.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        The DataFrame to modify.
+    allowed_levels : Dict[str, Dict[str, Any]]
+        A dictionary mapping column names to allowed levels.
+        Each column should have a dictionary with:
+        - 'levels' (list): A list of valid values for that column.
+        - 'replaced_by' (Any, optional): If provided, invalid values will be replaced
+          by this value; otherwise, rows with invalid values will be removed.
+
+    Returns
+    -------
+    None
+        This function modifies the input DataFrame in place.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame({'A': ['x', 'y', 'z'], 'B': ['m', 'n', 'o']})
+    >>> allowed_levels = {
+    ...     'A': {'levels': ['x', 'y'], 'replaced_by': None},
+    ...     'B': {'levels': ['m', 'n'], 'replaced_by': 'unknown'}
+    ... }
+    >>> constrict_levels(df, allowed_levels)
+    Removing rows for column A with invalid levels:
+    Row Index: 2, Invalid Level: z
+    >>> print(df)
+       A      B
+    0  x      m
+    1  y      n
+    2  NaN  unknown
+    """
     # from Claude
     for col, levels_dict in allowed_levels.items():
         level_set = set(levels_dict['levels'])
         replaced_by = levels_dict.get('replaced_by')
-        
+
         if replaced_by is None:
+            # Identify rows where values are not in the allowed set
             invalid_rows = df.loc[~df[col].isin(level_set)]
             if not invalid_rows.empty:
                 print(f"Removing rows for column {col} with invalid levels:")
                 for idx, row in invalid_rows.iterrows():
                     print(f"Row Index: {idx}, Invalid Level: {row[col]}")
+                # Drop invalid rows from the DataFrame
                 df.drop(invalid_rows.index, inplace=True)
         else:
+            # Replace invalid values with 'replaced_by' value
             df.loc[~df[col].isin(level_set), col] = replaced_by
 
 
@@ -337,7 +582,7 @@ def combine_files_to_df(
 
 
 def xlookup(df_main, df_lookup, lookup_col, key_col, return_col, inplace=True):
-    # v02 => raise Exception
+    # v02 => raise ValueError
     """
     Perform an XLOOKUP-like operation on DataFrames.
 
@@ -368,7 +613,7 @@ def xlookup(df_main, df_lookup, lookup_col, key_col, return_col, inplace=True):
     if inplace:
         for col in return_col:
             if df_main.shape[0] != merged_df.shape[0]:
-                raise Exception(f"Please drop duplicate in df_main first. The original n_rows of df_main is {df_main.shape[0]}, but became {merged_df.shape[0]} after merging ")
+                raise ValueError(f"Please drop duplicate in df_main first. The original n_rows of df_main is {df_main.shape[0]}, but became {merged_df.shape[0]} after merging ")
             else:
                 df_main[col] = merged_df[col]
         return df_main
@@ -923,11 +1168,6 @@ def duplicate_col(df):
 
 # -------------------------------------------------- imported from work Mar 17, 2024 ------------------------------------------------------
 
-
-
-
-
-
 def value_index(df, value):
     """
     Searches for a specific value in the DataFrame using a vectorized approach
@@ -961,26 +1201,24 @@ def value_index(df, value):
 
     return out_df
 
-# def count_null(df):
-#     # Get the number of null values in each column
-#     null_counts = df.isnull().sum()
-#     # Get the total number of rows in the DataFrame
-#     total_rows = df.shape[0]
-#     # Compute the proportion of null values in each column
-#     null_proportions = null_counts / total_rows
-#     # Create a dictionary mapping column names to null proportions
-#     result = dict(zip(df.columns, null_proportions))
-#     return result
 
-def count_null(df, return_as_dict: bool = False):
+def count_null(data, return_type: Union[str,Type] = pd.DataFrame):
     # Calculate null counts and proportions
-    null_counts = df.isnull().sum()
-    null_proportions = null_counts / len(df)
+    null_counts = data.isnull().sum()
+    null_proportions = null_counts / len(data)
     
-    if return_as_dict:
+    # v02 => support pd.Series
+    # low tested
+
+    if isinstance(data,pd.Series):
+        data_in = pd.DataFrame(data, columns = [data.name])
+        null_counts = data_in.isnull().sum()
+        null_proportions = null_counts / len(data_in)
+
+    if return_type in ["dict",dict]:
         # Return as dictionary if specified
         return dict(null_proportions)
-    else:
+    elif return_type in [pd.DataFrame]:
         # Create a DataFrame with the required columns
         result_df = pd.DataFrame({
             'column': null_counts.index,
@@ -1047,7 +1285,12 @@ def is_same(df1,df2):
 #     return df
 
 
-def read_excel(filepath, sheet_name=1, header_row=1, start_row=None, end_row=None) -> pd.DataFrame:
+def read_excel(
+        filepath
+        ,sheet_name:int|str =1
+        ,header_row=1
+        ,start_row=None
+        ,end_row=None) -> pd.DataFrame:
     import pandas as pd
     import xlwings as xw
     import numpy as np
@@ -1191,7 +1434,8 @@ def regex_index(df,regex, column):
     
     return ans_index
 
-def split_into_dict_df(df,regex = None, regex_column = None, index_list = None,add_prefix_index = False):
+def split_into_dict_df(
+    df,regex = None, regex_column = None, index_list = None,add_prefix_index = False):
     # from C:/Users/Heng2020/OneDrive/Python NLP/NLP 07_Sentence Alignment
     # middle tested by read_movie_script
     # if index_list is supplied then ignore regex, regex_column
@@ -1248,7 +1492,7 @@ def split_into_dict_df(df,regex = None, regex_column = None, index_list = None,a
         
     return df_dict
 
-def by_col(df:Union[pd.DataFrame], cols:Union[List,int,str]):
+def by_col(df:pd.DataFrame, cols:Union[List,int,str]):
 
     """
     slice the dataFrame refer to by str or int

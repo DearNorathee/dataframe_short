@@ -5,7 +5,7 @@ from dataframe_short.convert_types import *
 import dataframe_short.display # as dsd
 import dataframe_short.move_column # as mc
 # test git push 2
-__version__ = "0.1.12"
+__version__ = "0.1.13rc1"
 
 
 
