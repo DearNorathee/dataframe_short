@@ -12,7 +12,8 @@ setup(
     install_requires=["pandas",
                       "os_toolkit >= 0.1.2",
                       "py_string_tool >= 0.1.4",
-                      "datatable",
+                    # datatable has an error if git is not install in your system
+                    #   "datatable",
                       "polars",
                       "python_wizard >= 0.1.3",
                       "pyxlsb",
