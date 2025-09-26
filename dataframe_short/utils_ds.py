@@ -255,7 +255,6 @@ def dtypes(
     elif return_type == pd.DataFrame:
         return result.reset_index(drop=True)
 
-
 def value_counts(
         data: Union[pd.Series, pd.DataFrame, np.ndarray],
         dropna: bool = False,
@@ -315,9 +314,11 @@ def value_counts(
     """
 
     # Added01 => supported 1d numppy array
+    # Added02 => support multiple columns (25 Sep, 25)
 
     # solo GPT4o - As of Nov, 3, 2024
     # Convert numpy array to pandas Series or DataFrame if needed
+    # medium tested: Added02
     from pandas.api.types import is_numeric_dtype
 
     if isinstance(data, np.ndarray):
@@ -331,8 +332,11 @@ def value_counts(
         counts = data.value_counts(dropna=dropna)
         proportions = data.value_counts(normalize=True, dropna=dropna)
     elif isinstance(data, pd.DataFrame):
-        counts = data.apply(pd.Series.value_counts, dropna=dropna).fillna(0).sum(axis=1)
-        proportions = data.apply(pd.Series.value_counts, normalize=True, dropna=dropna).fillna(0).sum(axis=1)
+        # counts = data.apply(pd.Series.value_counts, dropna=dropna).fillna(0).sum(axis=1)
+        # proportions = data.apply(pd.Series.value_counts, normalize=True, dropna=dropna).fillna(0).sum(axis=1)
+        total_row = data.shape[0]
+        counts = data.groupby(list(data.columns)).size()
+        proportions = counts / total_row
     else:
         raise TypeError(f"Input data must be a pandas Series, DataFrame, or numpy array, got {type(data)} instead.")
 
@@ -888,14 +892,20 @@ def merge(left,
 
 
 
-def check_col_exist(df:Union[pd.DataFrame], columns:List[str]) -> List[Tuple[str, bool]]:
+def check_col_exist(
+        df:Union[pd.DataFrame]
+        ,columns:list[str]
+        ,return_type:Type = tuple
+        ) -> list[tuple[str, bool]]:
 
     """
     check if the columns in columns are in df.columns
+    return_type can be pd.DataFrame or tuple
+
     """
 
     # Create an empty list to store the tuples
-    result = []
+    result_tuple = []
     
     # Loop through the columns list
     for col in columns:
@@ -905,10 +915,15 @@ def check_col_exist(df:Union[pd.DataFrame], columns:List[str]) -> List[Tuple[str
         is_in = df.columns.isin([col]).any()
         
         # Append a tuple of the column name and the boolean value to the result list
-        result.append((col, is_in))
-    
+        result_tuple.append((col, is_in))
+
+
+    result_df = pd.DataFrame(result_tuple, columns=['column', 'status'])
     # Return the result list
-    return result
+    if return_type == pd.DataFrame:
+        return result_df
+    elif return_type == tuple:
+        return result_tuple
 
 
 
