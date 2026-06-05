@@ -14,6 +14,194 @@ Created on Thu Jul 13 10:53:08 2023
 """
 
 
+
+def append_new_rows_values(
+    df_main: pd.DataFrame,
+    df_value: pd.DataFrame,
+    old_cols: str| list[str],
+    new_cols: str| list[str]
+) -> pd.DataFrame:
+    """
+    Append new rows to df_main using values from df_value.
+
+    Parameters
+    ----------
+    df_main : pd.DataFrame
+        Main dataframe where new rows will be appended.
+
+    df_value : pd.DataFrame
+        Dataframe containing values to append.
+
+    old_cols : str or list[str]
+        Column name(s) from df_value.
+
+    new_cols : str or list[str]
+        Target column name(s) in df_main.
+
+    Returns
+    -------
+    pd.DataFrame
+        New dataframe with appended rows.
+    """
+    # medium tested
+    # Convert single string input to list
+    if isinstance(old_cols, str):
+        old_cols = [old_cols]
+
+    if isinstance(new_cols, str):
+        new_cols = [new_cols]
+
+    # Check both lists have same length
+    if len(old_cols) != len(new_cols):
+        raise ValueError("old_cols and new_cols must have the same length.")
+
+    # Check old columns exist in df_value
+    missing_old_cols = [col for col in old_cols if col not in df_value.columns]
+    if missing_old_cols:
+        raise KeyError(f"Columns not found in df_value: {missing_old_cols}")
+
+    # Check new columns exist in df_main
+    missing_new_cols = [col for col in new_cols if col not in df_main.columns]
+    if missing_new_cols:
+        raise KeyError(f"Columns not found in df_main: {missing_new_cols}")
+
+    # Create empty rows with same columns as df_main
+    new_rows = pd.DataFrame(columns=df_main.columns)
+
+    # Fill selected columns
+    for old_col, new_col in zip(old_cols, new_cols):
+        new_rows[new_col] = df_value[old_col].values
+
+    # Append to main dataframe
+    out_df = pd.concat(
+        [df_main, new_rows],
+        ignore_index=True
+    )
+
+    return out_df
+
+
+def set_index_as_header(
+    df: pd.DataFrame,
+    index: int,
+    inplace: bool = True
+) -> pd.DataFrame | None:
+    """
+    Use the row at `index` as the header, and remove all rows
+    before it as well as the header row itself.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Input DataFrame.
+    index : int
+        Row position to use as the new header.
+    inplace : bool, default=True
+        If True, modify the original DataFrame directly and return None.
+        If False, return a new DataFrame and leave the original unchanged.
+
+    Returns
+    -------
+    pd.DataFrame | None
+        - None if inplace=True
+        - A new DataFrame if inplace=False
+    """
+    
+    # tested: work when index >0,
+    # tested: work when colums' are repeated, or when None is in .columns
+    import warnings
+    
+    warnings.filterwarnings("ignore")
+    if not 0 <= index < len(df):
+        raise IndexError(f"`index` must be between 0 and {len(df) - 1}, got {index}")
+
+    # Build the transformed DataFrame
+    new_df = df.iloc[index + 1:].copy()
+    new_df.columns = df.iloc[index]
+    new_df.reset_index(drop=True, inplace=True)
+
+    if inplace:
+        df.__init__(new_df)
+
+        return None
+    warnings.filterwarnings("default")
+    return new_df
+
+def long_to_wide(
+    df: pd.DataFrame,
+    index: list[str],
+    column: str,
+    fill_value=None,
+    value: str = None,
+    aggfunc: Literal["sum", "count"] = "sum",
+    na_col_name: str = "nan",
+) -> pd.DataFrame:
+    """
+    Turn a long-format DataFrame into a wide one by pivoting on one column,
+    creating one output column per unique value (including NaN) in df[column].
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Input DataFrame in long format.
+    index : list[str]
+        Column(s) to group by—these become the index of the result.
+    column : str
+        The name of the “category” column whose unique values become new columns.
+    fill_value : any, default None
+        Value to use for missing entries in the wide table.
+    value : str
+        The name of the numeric column whose values are placed into the new columns.
+        Required if aggfunc="sum", ignored if aggfunc="count".
+    aggfunc : {"sum", "count"}, default "sum"
+        Aggregation to apply when collapsing rows with the same index:
+        - "sum": sum up the `value` entries
+        - "count": count occurrences of each category
+    na_col_name : str, default "nan"
+        Column name to use for the NaN category in `column`.
+
+    Returns
+    -------
+    pd.DataFrame
+        A wide-format DataFrame with one column per category in `df[column]`,
+        indexed by the columns in `index`.
+    """
+    if aggfunc == "sum" and value is None:
+        raise ValueError("`value` must be specified when aggfunc='sum'")
+
+    # 1. Determine unique categories, including NaN
+    raw_cats = pd.Index(df[column].unique())
+    # Build mapping: raw category value -> column name
+    cat_to_col = {}
+    for cat in raw_cats:
+        if pd.isna(cat):
+            cat_to_col[cat] = na_col_name
+        else:
+            cat_to_col[cat] = str(cat)
+
+    # 2. Prepare a temporary frame with index cols
+    df_tmp = df[index].copy()
+
+    # 3. For each category, create a column with either the value or count
+    for cat, col_name in cat_to_col.items():
+        if aggfunc == "sum":
+            # where df[column] == cat, take df[value], else 0
+            mask = df[column].eq(cat) if not pd.isna(cat) else df[column].isna()
+            df_tmp[col_name] = np.where(mask, df[value], 0)
+        else:  # count
+            mask = df[column].eq(cat) if not pd.isna(cat) else df[column].isna()
+            df_tmp[col_name] = mask.astype(int)
+
+    # 4. Group by and aggregate (sum covers both sum and count cases)
+    result = df_tmp.groupby(index, as_index=False).sum(numeric_only=True)
+
+    # 5. Ensure all category columns exist and in original order
+    all_cols = index + list(cat_to_col.values())
+    # reindex will add missing columns if any, and fill others with fill_value
+    result = result.reindex(columns=all_cols, fill_value=fill_value)
+
+    return result
+
 def unique_score(df: pd.DataFrame, return_type: Type = pd.DataFrame) -> Union[pd.DataFrame, Dict[str, float]]:
     """
     Calculate the unique score for each column in a DataFrame.
@@ -726,7 +914,8 @@ def get_col(df,start_with = "",end_with ="", contain = "", case_sensitive=False,
 # add 2 logic options
 
     cols = list(df.columns)
-    
+    # cover case when columns aren't string
+    cols = list(map(str, cols))
     if start_with != "":
         if case_sensitive:
             cols = [x for x in cols if x.startswith(start_with) ]
