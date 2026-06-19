@@ -128,7 +128,7 @@ def to_datetime(df,cols = None,inplace=True, print_col = True):
     import pandas as pd
 
     if cols is None:
-        cols = get_col(df,contain='date',print_col=print_col)
+        cols = get_col(df,contain='date',verbose=print_col)
 
     
     out_df = pd.DataFrame()
