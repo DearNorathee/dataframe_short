@@ -922,7 +922,8 @@ def get_col(
     # add 2 logic options
 
     cols = list(df.columns)
-    
+    # cover case when columns aren't string
+    cols = list(map(str, cols))
     if start_with != "":
         if case_sensitive:
             cols = [x for x in cols if x.startswith(start_with) ]
