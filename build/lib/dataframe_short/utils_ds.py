@@ -907,15 +907,22 @@ def common_col(df1,df2):
     common_col = [x for x in list(df1.columns) if x in list(df2.columns) ]
     return common_col
 
-def get_col(df,start_with = "",end_with ="", contain = "", case_sensitive=False, print_col=True):
+def get_col(
+    df: pd.DataFrame
+    ,start_with = ""
+    ,end_with =""
+    ,contain = ""
+    ,case_sensitive=False
+    ,verbose:int = 1
+    ,sort:bool = True
+    ):
 
-# this is from print_col 
-# !!! TODO start_with, end_with, contain is list
-# add 2 logic options
+    # this is from print_col 
+    # !!! TODO start_with, end_with, contain is list
+    # add 2 logic options
 
     cols = list(df.columns)
-    # cover case when columns aren't string
-    cols = list(map(str, cols))
+    
     if start_with != "":
         if case_sensitive:
             cols = [x for x in cols if x.startswith(start_with) ]
@@ -934,10 +941,10 @@ def get_col(df,start_with = "",end_with ="", contain = "", case_sensitive=False,
             cols = [x for x in cols if contain in x]
         else:
             cols = [x for x in cols if contain.lower() in x.lower()]
-    
-    cols.sort()
+    if sort:
+        cols.sort()
 
-    if print_col:
+    if verbose >= 1:
         for col in cols:
             print(col)
 
@@ -985,9 +992,9 @@ def merge2(left,
     # elif keep == "right":
     #     df_merged = pd.merge(left,right,how,on,left_on,right_on,suffixes=('_remove', ''))
     
-    x_col = get_col(df_merged,end_with = "_x",print_col=False)
+    x_col = get_col(df_merged,end_with = "_x",verbose=False)
     
-    xy_col = list(zip(get_col(df_merged,end_with = "_x",print_col=False),get_col(df_merged,end_with = "_y",print_col=False) ))
+    xy_col = list(zip(get_col(df_merged,end_with = "_x",verbose=False),get_col(df_merged,end_with = "_y",verbose=False) ))
 
     for x_col, y_col in xy_col:
         col_name = x_col.split("_")[0]
@@ -1034,12 +1041,12 @@ def merge(left,
     # elif keep == "right":
     #     df_merged = pd.merge(left,right,how,on,left_on,right_on,suffixes=('_remove', ''))
     
-    x_col_list = get_col(df_merged,end_with = "_x",print_col=False)
-    y_col_list = get_col(df_merged,end_with = "_y",print_col=False)
+    x_col_list = get_col(df_merged,end_with = "_x",verbose=False)
+    y_col_list = get_col(df_merged,end_with = "_y",verbose=False)
     
     xy_col_list = x_col_list + y_col_list
     
-    xy_col = list(zip(get_col(df_merged,end_with = "_x",print_col=False),get_col(df_merged,end_with = "_y",print_col=False) ))
+    xy_col = list(zip(get_col(df_merged,end_with = "_x",verbose=False),get_col(df_merged,end_with = "_y",verbose=False) ))
 
     for x_col, y_col in xy_col:
         col_name = x_col.split("_x")[0]
@@ -1492,6 +1499,7 @@ def is_same(df1,df2):
 def read_excel(
         filepath
         ,sheet_name:int|str =1
+        ,update_links: None|bool = False
         ,header_row=1
         ,start_row=None
         ,end_row=None) -> pd.DataFrame:
@@ -1520,7 +1528,7 @@ def read_excel(
             - pandas.DataFrame: The data read from the Excel file.
             - pandas.Series: The header row as a Series.
     """
-    wb = xw.Book(filepath)
+    wb = xw.Book(filepath,update_links=update_links)
     
     if isinstance(sheet_name,int):
         sheet = wb.sheets[sheet_name-1]
